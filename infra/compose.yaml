@@ -1,0 +1,10 @@
+services:
+  silverbullet:
+    image: ghcr.io/silverbulletmd/silverbullet:latest
+    restart: unless-stopped
+    environment:
+      - SB_USER=dev:dev
+    volumes:
+      - ./space:/space
+    ports:
+      - "3000:3000"
