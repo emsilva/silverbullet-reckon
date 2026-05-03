@@ -69,6 +69,11 @@ describe("engine.evaluate — percentages (literal)", () => {
     const out = evaluate("20%\n");
     expect(out.rows[0].kind === "value" && out.rows[0].result).toBe("0.2");
   });
+
+  it("chains additive percentages: `100 + 20% + 30%` → 156", () => {
+    const out = evaluate("100 + 20% + 30%\n");
+    expect(out.rows[0].kind === "value" && out.rows[0].result).toBe("156");
+  });
 });
 
 describe("engine.evaluate — variables and scope", () => {

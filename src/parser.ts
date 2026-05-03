@@ -13,8 +13,10 @@ const FENCE_RE = /^```/;
  */
 export function splitIntoLines(text: string): RawLine[] {
   if (text === "") return [];
-  // Drop trailing single newline so "a\n" yields one line, not two.
-  const trimmed = text.endsWith("\n") ? text.slice(0, -1) : text;
+  // Normalize Windows (CRLF) and old Mac (CR) line endings to LF first,
+  // then drop trailing single newline so "a\n" yields one line, not two.
+  const normalized = text.replace(/\r\n?/g, "\n");
+  const trimmed = normalized.endsWith("\n") ? normalized.slice(0, -1) : normalized;
   return trimmed.split("\n").map((t, i) => ({ line: i + 1, text: t }));
 }
 
@@ -93,18 +95,36 @@ export function rewriteExpression(
   let out = expr;
 
   // (a) `Y + N%` / `Y - N%` (literal additive percentage).
-  // Y is a number, identifier, or parenthesized group. Keep this loose:
-  // anything non-whitespace before the operator. The standalone-N% rewrite
-  // below would otherwise eat the `%` first.
-  out = out.replace(
-    /(\S+)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*%(?!\w)/g,
-    (_m, y: string, op: string, n: string) => `${y} * (1 ${op} ${n}/100)`,
-  );
+  // Looped to chain: `100 + 20% + 30%` → `100 * (1 + 20/100) * (1 + 30/100)`.
+  // Each iteration rewrites the leftmost remaining match; stable when none left.
+  // Cap at 10 iterations (defensive — real inputs converge in N steps).
+  for (let i = 0; i < 10; i++) {
+    const next = out.replace(
+      /(\S+)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*%(?!\w)/g,
+      (_m, y: string, op: string, n: string) => `${y} * (1 ${op} ${n}/100)`,
+    );
+    if (next === out) break;
+    out = next;
+  }
 
   // (b) `Y + var` / `Y - var` where var is a known percentage variable.
-  for (const v of percentageVars) {
-    const re = new RegExp(`(\\S+)\\s*([+\\-])\\s*\\b${escapeRegex(v)}\\b`, "g");
-    out = out.replace(re, (_m, y: string, op: string) => `${y} * (1 ${op} ${v})`);
+  // Looped for the same reason as (a) — chained percent-var references.
+  // Uses a negative lookbehind `(?<!\()` so that `1` inside an already-rewritten
+  // `(1 + var)` group is not matched again on subsequent iterations.
+  for (let i = 0; i < 10; i++) {
+    let changed = false;
+    for (const v of percentageVars) {
+      const re = new RegExp(
+        `(?<!\\()\\b(\\S+)\\s*([+\\-])\\s*\\b${escapeRegex(v)}\\b`,
+        "g",
+      );
+      const next = out.replace(re, (_m, y: string, op: string) => `${y} * (1 ${op} ${v})`);
+      if (next !== out) {
+        out = next;
+        changed = true;
+      }
+    }
+    if (!changed) break;
   }
 
   // (c) `N% of Y` (binary "of" treated as multiplication).
@@ -116,9 +136,10 @@ export function rewriteExpression(
   // (d) standalone `N%` → `N/100`.
   out = out.replace(/(\d+(?:\.\d+)?)\s*%(?!\w)/g, (_m, n: string) => `${n}/100`);
 
-  // (e) `in` → `to` for unit conversions. Aggressive whole-word rewrite;
-  // false positives become parse errors → comment rows, no harm done.
-  out = out.replace(/\bin\b/g, "to");
+  // (e) Soulver-style ` in ` → mathjs ` to ` for unit conversions.
+  // Only fires when followed by an identifier (not by `to`, not at end of
+  // expression) — leaves bare `12 in` (inches) and `12 in to cm` alone.
+  out = out.replace(/\bin\s+(?!to\b)(?=[A-Za-z])/g, "to ");
 
   return out;
 }

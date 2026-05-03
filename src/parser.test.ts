@@ -53,6 +53,14 @@ describe("extractMathLines", () => {
     const text = "1+1\n";
     expect(extractMathLines(text)).toEqual([{ line: 1, text: "1+1" }]);
   });
+
+  it("normalizes CRLF line endings (Windows-edited input)", () => {
+    expect(extractMathLines("a\r\nb\r\nc\r\n")).toEqual([
+      { line: 1, text: "a" },
+      { line: 2, text: "b" },
+      { line: 3, text: "c" },
+    ]);
+  });
 });
 
 describe("splitIntoLines (helper used by block widgets)", () => {
@@ -103,6 +111,20 @@ describe("rewriteExpression — percentages", () => {
     // Just verify the rewrite doesn't throw or mangle.
     expect(() => rewriteExpression("$300 + 20%", noVars)).not.toThrow();
   });
+
+  it("chains literal additive percentages: `100 + 20% + 30%` → Soulver-faithful", () => {
+    // Soulver convention: 100 * 1.2 * 1.3 = 156, not 100 + 0.2 + 0.3 = 100.5.
+    expect(rewriteExpression("100 + 20% + 30%", noVars)).toBe(
+      "100 * (1 + 20/100) * (1 + 30/100)",
+    );
+  });
+
+  it("chains variable additive percentages", () => {
+    const vars = new Set(["tax", "tip"]);
+    expect(rewriteExpression("100 + tax + tip", vars)).toBe(
+      "100 * (1 + tax) * (1 + tip)",
+    );
+  });
 });
 
 describe("rewriteExpression — `in` → `to`", () => {
@@ -118,6 +140,14 @@ describe("rewriteExpression — `in` → `to`", () => {
 
   it("rewrites `in` once per occurrence (idempotent on already-`to` form)", () => {
     expect(rewriteExpression("24C in F", noVars)).toBe("24C to F");
+  });
+
+  it("does NOT rewrite bare `in` (inches unit)", () => {
+    expect(rewriteExpression("12 in", noVars)).toBe("12 in");
+  });
+
+  it("does NOT rewrite `in to` (mathjs redundant form)", () => {
+    expect(rewriteExpression("12 in to cm", noVars)).toBe("12 in to cm");
   });
 });
 
