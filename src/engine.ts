@@ -76,8 +76,14 @@ function evaluateLine(
     return { kind: "comment", line: raw.line, source: raw.text };
   }
 
-  if (assignment?.isPercentageRhs) {
-    percentageVars.add(assignment.varName);
+  if (assignment) {
+    if (assignment.isPercentageRhs) {
+      percentageVars.add(assignment.varName);
+    } else {
+      // Reassignment of a percent-var to a non-percent value: clear the
+      // additive flag so subsequent references use plain arithmetic.
+      percentageVars.delete(assignment.varName);
+    }
   }
 
   const formatted = formatValue(value);

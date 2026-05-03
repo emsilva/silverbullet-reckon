@@ -114,6 +114,16 @@ describe("engine.evaluate — variables and scope", () => {
     // x is not defined in this fresh evaluate() — so the line is a comment.
     expect(out.rows[0].kind).toBe("comment");
   });
+
+  it("clears the additive flag when a percent-var is reassigned to a non-percentage", () => {
+    // tax starts as a percentage literal — additive
+    // tax is then reassigned to a plain number — additive flag must clear
+    const out = evaluate("tax = 20%\ntax = 0.5\n100 + tax\n");
+    expect(out.rows[0]).toMatchObject({ kind: "assignment", varName: "tax", result: "0.2" });
+    expect(out.rows[1]).toMatchObject({ kind: "assignment", varName: "tax", result: "0.5" });
+    // 100 + tax must be plain arithmetic, NOT additive: 100 + 0.5 = 100.5
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "100.5" });
+  });
 });
 
 describe("engine.evaluate — comments and error fallthrough", () => {
