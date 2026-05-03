@@ -1,0 +1,24 @@
+{
+  "name": "silverbullet-reckon",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "npx plug-compile reckon.plug.yaml",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "dev:seed": "infra/setup.sh",
+    "dev:link": "mkdir -p infra/space/Library/emsilva/reckon && cp reckon.plug.js PLUG.md infra/space/Library/emsilva/reckon/",
+    "dev:up": "npm run build && npm run dev:link && (cd infra && docker compose up -d)",
+    "dev:down": "(cd infra && docker compose down)",
+    "dev:logs": "(cd infra && docker compose logs -f)"
+  },
+  "dependencies": {
+    "@silverbulletmd/silverbullet": ">=2.5.3",
+    "mathjs": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
