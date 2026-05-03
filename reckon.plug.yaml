@@ -8,6 +8,7 @@ functions:
     path: ./src/plug.ts:onPageEvent
     events:
       - editor:pageLoaded
+      - editor:pageReloaded
       - editor:pageModified
 
   toggleSheetCommand:
