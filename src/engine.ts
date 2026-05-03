@@ -16,6 +16,7 @@ export type ResultRow =
       line: number;
       source: string;
       result: string;
+      /** Always finite. Undefined for units, booleans, strings, etc. */
       numeric?: number;
     }
   | {
@@ -24,6 +25,7 @@ export type ResultRow =
       source: string;
       varName: string;
       result: string;
+      /** Always finite. Undefined for units, booleans, strings, etc. */
       numeric?: number;
     };
 
@@ -105,8 +107,9 @@ interface FormattedValue {
 }
 
 function formatValue(value: unknown): FormattedValue {
-  // mathjs Unit values: have a .toString and are NOT plain numbers.
-  if (value && typeof value === "object" && "toString" in value && "type" in value) {
+  // mathjs Unit values: caught explicitly via instanceof. Other math
+  // object types (DenseMatrix, ResultSet) fall through to String(value).
+  if (value instanceof math.Unit) {
     return { text: String(value) };
   }
   if (typeof value === "number") {
