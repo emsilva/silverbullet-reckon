@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractMathLines, splitIntoLines } from "./parser";
+import { extractMathLines, splitIntoLines, rewriteExpression, detectAssignment } from "./parser";
 
 describe("extractMathLines", () => {
   it("returns one RawLine per source line for plain text", () => {
@@ -62,5 +62,95 @@ describe("splitIntoLines (helper used by block widgets)", () => {
       { line: 2, text: "" },
       { line: 3, text: "b" },
     ]);
+  });
+});
+
+describe("rewriteExpression — percentages", () => {
+  const noVars = new Set<string>();
+
+  it("rewrites `X% of Y` to `(X/100) * Y`", () => {
+    expect(rewriteExpression("20% of 450", noVars)).toBe("(20/100) * 450");
+  });
+
+  it("rewrites additive literal: `Y + X%` to `Y * (1 + X/100)`", () => {
+    expect(rewriteExpression("100 + 20%", noVars)).toBe("100 * (1 + 20/100)");
+  });
+
+  it("rewrites subtractive literal: `Y - X%` to `Y * (1 - X/100)`", () => {
+    expect(rewriteExpression("100 - 20%", noVars)).toBe("100 * (1 - 20/100)");
+  });
+
+  it("rewrites standalone `X%` to `X/100`", () => {
+    expect(rewriteExpression("20%", noVars)).toBe("20/100");
+  });
+
+  it("rewrites additive var: `Y + tax` when tax is a percentage var", () => {
+    const vars = new Set(["tax"]);
+    expect(rewriteExpression("300 + tax", vars)).toBe("300 * (1 + tax)");
+  });
+
+  it("does NOT rewrite `Y + var` when var is not a percentage var", () => {
+    expect(rewriteExpression("300 + tax", noVars)).toBe("300 + tax");
+  });
+
+  it("rewrites subtractive var: `Y - tax` when tax is a percentage var", () => {
+    const vars = new Set(["tax"]);
+    expect(rewriteExpression("300 - tax", vars)).toBe("300 * (1 - tax)");
+  });
+
+  it("handles dollar-sign prefixes pragmatically (does not break)", () => {
+    // mathjs doesn't handle $; we leave it and let mathjs error → comment row.
+    // Just verify the rewrite doesn't throw or mangle.
+    expect(() => rewriteExpression("$300 + 20%", noVars)).not.toThrow();
+  });
+});
+
+describe("rewriteExpression — `in` → `to`", () => {
+  const noVars = new Set<string>();
+
+  it("rewrites ` in ` to ` to ` (whole-word)", () => {
+    expect(rewriteExpression("100km in miles", noVars)).toBe("100km to miles");
+  });
+
+  it("does not rewrite `in` inside a longer word", () => {
+    expect(rewriteExpression("inflation * 2", noVars)).toBe("inflation * 2");
+  });
+
+  it("rewrites `in` once per occurrence (idempotent on already-`to` form)", () => {
+    expect(rewriteExpression("24C in F", noVars)).toBe("24C to F");
+  });
+});
+
+describe("detectAssignment", () => {
+  it("identifies `name = expr`", () => {
+    expect(detectAssignment("tax = 20%")).toEqual({
+      varName: "tax",
+      rhs: "20%",
+      isPercentageRhs: true,
+    });
+  });
+
+  it("identifies non-percentage assignments", () => {
+    expect(detectAssignment("salary = 200000")).toEqual({
+      varName: "salary",
+      rhs: "200000",
+      isPercentageRhs: false,
+    });
+  });
+
+  it("identifies a percent-of assignment as percentage RHS", () => {
+    // `20% of 450` is a standalone numeric value, not a percentage variable.
+    // Only assignments whose RHS is a literal `N%` (or whitespace `N %`) are
+    // treated as percentage assignments for additive-variable purposes.
+    expect(detectAssignment("rate = 20% of 450")?.isPercentageRhs).toBe(false);
+  });
+
+  it("returns null for non-assignment lines", () => {
+    expect(detectAssignment("100 + 20%")).toBeNull();
+    expect(detectAssignment("just text")).toBeNull();
+  });
+
+  it("does not confuse `==` for assignment", () => {
+    expect(detectAssignment("a == b")).toBeNull();
   });
 });
