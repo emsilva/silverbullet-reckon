@@ -1,0 +1,18 @@
+name: reckon
+functions:
+  reckonBlockWidget:
+    path: ./src/plug.ts:reckonBlockWidget
+    codeWidget: reckon
+
+  onPageEvent:
+    path: ./src/plug.ts:onPageEvent
+    events:
+      - editor:pageLoaded
+      - editor:pageModified
+
+  toggleSheetCommand:
+    path: ./src/plug.ts:toggleSheetCommand
+    command:
+      name: "Reckon: Convert page to sheet"
+      requireMode: rw
+      requireEditor: page
