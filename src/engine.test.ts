@@ -70,3 +70,65 @@ describe("engine.evaluate — percentages (literal)", () => {
     expect(out.rows[0].kind === "value" && out.rows[0].result).toBe("0.2");
   });
 });
+
+describe("engine.evaluate — variables and scope", () => {
+  it("evaluates assignment + later reference to same scope", () => {
+    const out = evaluate("salary = 200000\nsalary * 1.15\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      varName: "salary",
+      result: "200,000",
+    });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "230,000" });
+  });
+
+  it("treats `tax = 20%` then `100 + tax` as additive (→ 120)", () => {
+    const out = evaluate("tax = 20%\n100 + tax\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      varName: "tax",
+      result: "0.2",
+    });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "120" });
+  });
+
+  it("treats `tax = 20%` then `200 - tax` as subtractive (→ 160)", () => {
+    const out = evaluate("tax = 20%\n200 - tax\n");
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "160" });
+  });
+
+  it("does NOT treat a non-percentage var additively", () => {
+    const out = evaluate("rate = 0.2\n100 + rate\n");
+    // 100 + 0.2 = 100.2 — plain arithmetic.
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "100.2" });
+  });
+
+  it("variable shadowing: later assignment overwrites earlier", () => {
+    const out = evaluate("x = 1\nx = 2\nx + 1\n");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "3" });
+  });
+
+  it("each evaluate() call gets a fresh scope (isolation)", () => {
+    evaluate("x = 99\n");
+    const out = evaluate("x + 1\n");
+    // x is not defined in this fresh evaluate() — so the line is a comment.
+    expect(out.rows[0].kind).toBe("comment");
+  });
+});
+
+describe("engine.evaluate — comments and error fallthrough", () => {
+  it("non-math prose lines become comment rows", () => {
+    const out = evaluate("Project budget Q2\n200000 * 1.15\n");
+    expect(out.rows[0]).toEqual({
+      kind: "comment",
+      line: 1,
+      source: "Project budget Q2",
+    });
+    expect(out.rows[1].kind).toBe("value");
+  });
+
+  it("typos in math-shaped lines also become comments (silent fail)", () => {
+    const out = evaluate("5 + \n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+});
