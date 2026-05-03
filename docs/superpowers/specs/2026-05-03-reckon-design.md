@@ -10,7 +10,9 @@
 Build a Silverbullet plug that turns any markdown page into a Soulver-style
 calculation surface: type natural-feeling math (`1 + 1`, `tax = 20%`,
 `100 km in miles`, `$300 + tax`) and see results render live in a
-right-hand panel, line by line, without ever mutating the page text.
+right-hand panel, line by line, without the plug rewriting the page in
+response to typing. (A user-invoked toggle command does mutate frontmatter,
+but that is an explicit action, not a side effect of typing.)
 
 Soulver's "magic" is that results live in a separate column from the
 source — typing on the left, evaluation on the right, perfectly aligned.
@@ -360,25 +362,30 @@ One renderer used in two places. Output is `{ html, script }` — the same
 shape `editor.showPanel(...)` accepts and the same shape codeWidget functions
 return.
 
-Layout is a single two-column `<table>`:
+Layout is a single two-column `<table>`. Theme integration uses the same
+CSS variables that the `attribute-chart` plug relies on (`--root-color`,
+`--root-background-color`, `--top-background-color`, `--ui-font`) with sane
+fallbacks. Sketch — variable names should be re-verified against current
+Silverbullet CSS at implementation time:
 
 ```html
 <style>
+  html { color-scheme: light dark; }
   body {
-    font-family: var(--editor-font, ui-monospace, SFMono-Regular, monospace);
-    color: var(--editor-text, inherit);
-    background: var(--editor-bg, transparent);
+    font-family: var(--ui-font, ui-monospace, SFMono-Regular, monospace);
+    color: var(--root-color, inherit);
+    background: var(--root-background-color, transparent);
     margin: 0; padding: 12px;
     font-size: 13px;
   }
   table.reckon { width: 100%; border-collapse: collapse; }
   td { padding: 2px 8px; vertical-align: top; white-space: pre-wrap; }
-  td.source { color: var(--editor-text, inherit); }
-  td.result { text-align: right; color: var(--accent, #5b8def); }
+  td.source { color: var(--root-color, inherit); }
+  td.result { text-align: right; opacity: 0.85; }
   tr.blank td { height: 1.2em; }
-  tr.comment td.source { color: var(--muted, #8a8a8a); }
+  tr.comment td.source { opacity: 0.6; }
   tr.total td {
-    border-top: 1px solid var(--border, currentColor);
+    border-top: 1px solid currentColor;
     padding-top: 6px;
     font-weight: 600;
   }
@@ -395,10 +402,8 @@ Layout is a single two-column `<table>`:
 </table>
 ```
 
-**Theme integration:** read CSS variables from the surrounding editor
-(`--editor-font`, `--editor-text`, etc.) with sane fallbacks. The iframe
-inherits the theme so dark mode works automatically — same trick mermaid
-and attribute-chart use.
+The iframe inherits the parent theme so dark mode works automatically —
+same trick mermaid and attribute-chart use.
 
 **Two callers, one renderer:**
 - Path A (`onPageEvent`): `editor.showPanel("rhs", 2, html, "")`. Mode `2`
@@ -461,8 +466,8 @@ ecosystem expectations) as a reference but diverge where we need to:
   "private": true,
   "scripts": {
     "build":     "npx plug-compile reckon.plug.yaml",
-    "watch":     "npx plug-compile reckon.plug.yaml -w",
     "test":      "npx vitest run",
+    "dev:seed":  "infra/setup.sh",
     "dev:link":  "mkdir -p infra/space/Library/emsilva/reckon && cp reckon.plug.js PLUG.md infra/space/Library/emsilva/reckon/",
     "dev:up":    "npm run build && npm run dev:link && (cd infra && docker compose up -d)",
     "dev:down":  "(cd infra && docker compose down)",
@@ -494,15 +499,19 @@ services:
       - "3000:3000"
 ```
 
-`infra/space/` is gitignored — that's user-generated SB state. On first
-run, `dev:up` script copies `infra/space-seed/*` into `infra/space/` if
-the latter doesn't exist (or is empty). `infra/space-seed/` is tracked
-in git and contains:
+`infra/space/` is gitignored — that's user-generated SB state.
+`infra/space-seed/` is tracked in git and contains the canonical seed:
 
 - `index.md` — welcome page with "open Test Sheet" link and `Library: Install` instructions.
 - `Test Sheet.md` — a `reckon: true` page seeded with the canonical
   Soulver-screenshot inputs (`1+1`, `20% of 450`, `100km in miles`, etc.)
   for use as a fixed reference during manual smoke testing.
+
+Seeding is a one-time, explicit step: the user runs `npm run dev:seed`
+(which invokes `infra/setup.sh`) once. The script copies `space-seed/`
+into `space/` only if `space/` is empty, so a re-run never overwrites
+work-in-progress. `dev:up` does not auto-seed — that would make it too
+easy to accidentally clobber a working dev space.
 
 **Live plug pickup is built in:** SB scans `*.plug.js` files in the space
 and reloads automatically within ~20s. After `npm run dev:link` recopies
