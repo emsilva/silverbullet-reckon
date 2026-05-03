@@ -13,7 +13,7 @@ function findFrontmatter(lines: string[]): FrontmatterRange | null {
     if (lines[i] === FRONTMATTER_DELIM) {
       let bodyStart = i + 1;
       // skip one blank line directly after the closing delim, if present
-      if (lines[bodyStart] === "") bodyStart += 1;
+      if (bodyStart < lines.length && lines[bodyStart] === "") bodyStart += 1;
       return { open: 0, close: i, bodyStart };
     }
   }
@@ -51,6 +51,10 @@ export function toggleReckonFrontmatter(text: string): string {
     lines.splice(reckonIdx, 1);
     // If frontmatter is now empty, strip the whole block (including the
     // single blank line we conventionally add after it).
+    // After the splice above, `fm.close` is one greater than the new index
+    // of the closing `---`. So `fm.close - 1` points at the delimiter, and
+    // `slice(fm.open + 1, fm.close - 1)` correctly covers the keys between
+    // the two delimiters in the post-splice array.
     const stillHasContent = lines
       .slice(fm.open + 1, fm.close - 1)
       .some((l) => l.trim() !== "");
