@@ -4,6 +4,34 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 ---
 
+## What changed — Engineering hardening (issue #11)
+
+These are mostly invisible to users — math behavior is unchanged. The
+three items here harden the project's distribution path:
+
+### 1. Smaller plug bundle (faster install, faster load)
+
+`reckon.plug.js` shrank from ~654 KB to ~326 KB by tree-shaking `mathjs`
+to a curated set of `*Dependencies` aggregators (parser + arithmetic +
+units + `to`-conversion only — no BigNumber, no Fraction, no matrices,
+no statistics). All 107 prior tests still pass, plus a new integration
+snapshot test (item 2) makes 108.
+
+### 2. Integration snapshot covers `evaluate → renderSheet`
+
+A new test in `src/render.test.ts` runs a canonical mixed-input string
+through `evaluate(...)` and `renderSheet(...)` end-to-end and snapshots
+the rendered table HTML. Catches contract drift between engine and
+renderer that the existing pure-render snapshot would miss.
+
+### 3. CI runs every push
+
+A new GitHub Actions workflow at `.github/workflows/ci.yml` runs `npm
+test`, type-checks, rebuilds the plug, and verifies the committed
+`reckon.plug.js` matches the rebuild. Stale-bundle commits now fail CI.
+
+---
+
 ## What's new — Quality Fixes (issue #1)
 
 Four small Soulver-parity fixes, landed as one bundle.
