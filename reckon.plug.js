@@ -87,6 +87,11 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ds.test(o));if(i>=0){if(r.sp
   }
 </style>`.trim(),S0=`
 (function () {
+  // Guard against accumulating duplicate listeners when SB re-injects the
+  // panel script on each render. The flag lives on window for the iframe's
+  // lifetime; a single click listener handles all subsequent renders.
+  if (window.__reckonClickBound) return;
+  window.__reckonClickBound = true;
   document.addEventListener("click", function (e) {
     var cell = e.target.closest("[data-clipboard-value]");
     if (!cell) return;

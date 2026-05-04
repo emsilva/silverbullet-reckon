@@ -282,6 +282,18 @@ describe("render — script slot contains the click handler", () => {
     expect(out.script).toContain("navigator.clipboard.writeText");
     expect(out.script).toContain("flashNotification");
   });
+
+  it("script guards against duplicate listener registration on re-render", () => {
+    const out = renderSheet({
+      rows: [],
+      total: null,
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
+    });
+    // Assertions confirm the idempotency flag pattern is in place.
+    expect(out.script).toContain("__reckonClickBound");
+    expect(out.script).toContain("window.__reckonClickBound = true");
+  });
 });
 
 describe("render — Dracula/Alucard CSS palette", () => {
