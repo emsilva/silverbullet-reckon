@@ -81,17 +81,22 @@ tax = 20%        | 20%
 ### 2. `#` and `//` lines are always comments
 
 Any line whose first non-whitespace token is `#` or `//` is rendered as a
-comment row, regardless of what comes after. Useful for headings, section
-breaks, and inline notes inside a sheet:
+comment row, regardless of what comes after. Useful for section breaks
+and inline notes inside a sheet:
 
 ```
-# Q2 budget       | (comment)
+#nospace          | (comment)
 // scratch math   | (comment)
 1000 + 200        | 1,200
 ```
 
 Mid-line `#` is unaffected — mathjs natively treats trailing `#` as an inline
 comment, so `5 # inline` still evaluates to `5`. Both behaviors compose.
+
+> **Updated by issue #3:** ATX-shaped lines (`# foo`, `## bar`, ..., 1–6 hashes
+> followed by whitespace and content) now render as **headings** instead of
+> comments — see "Visual polish" above. Use `//` or `#nospace` if you want a
+> non-heading comment.
 
 ### 3. Percent-literal assignments display as `N%`, not `0.2`
 
