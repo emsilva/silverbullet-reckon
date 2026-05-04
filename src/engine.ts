@@ -134,11 +134,9 @@ function computeTotal(rows: ResultRow[]): TotalRow | null {
   let sum = 0;
   let any = false;
   for (const row of rows) {
-    if (row.kind === "value" || row.kind === "assignment") {
-      if (row.numeric !== undefined && Number.isFinite(row.numeric)) {
-        sum += row.numeric;
-        any = true;
-      }
+    if (row.kind === "value" && row.numeric !== undefined && Number.isFinite(row.numeric)) {
+      sum += row.numeric;
+      any = true;
     }
   }
   if (!any) return null;

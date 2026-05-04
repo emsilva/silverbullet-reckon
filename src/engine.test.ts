@@ -147,3 +147,23 @@ describe("engine.evaluate — comments and error fallthrough", () => {
     expect(out.rows[0].kind).toBe("comment");
   });
 });
+
+describe("engine.evaluate — auto-total scope (excludes assignments)", () => {
+  it("does not include `tax = 20%` assignment numeric in the total", () => {
+    const out = evaluate("tax = 20%\n100\n");
+    // Pre-fix: 0.2 + 100 = 100.2. Post-fix: just 100.
+    expect(out.total).toEqual({ value: "100" });
+  });
+
+  it("ignores assignment rows even with multiple value rows", () => {
+    const out = evaluate("salary = 200000\n100\n200\n");
+    // Pre-fix: 200000 + 100 + 200 = 200,300. Post-fix: 100 + 200 = 300.
+    expect(out.total).toEqual({ value: "300" });
+  });
+
+  it("returns null total when only assignments exist (no value rows)", () => {
+    const out = evaluate("a = 1\nb = 2\n");
+    // Pre-fix would return Total 3. Post-fix: null (no value rows to sum).
+    expect(out.total).toBe(null);
+  });
+});
