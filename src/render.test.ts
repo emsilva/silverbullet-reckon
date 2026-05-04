@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderSheet } from "./render";
+import { evaluate } from "./engine";
 import type { EvaluateResult } from "./engine";
 
 const canonical: EvaluateResult = {
@@ -57,5 +58,26 @@ describe("renderSheet", () => {
 
   it("matches the canonical snapshot", () => {
     expect(renderSheet(canonical)).toMatchSnapshot();
+  });
+});
+
+describe("integration — evaluate(text) → renderSheet(result)", () => {
+  it("snapshots the full pipeline for a canonical mixed input", () => {
+    const input = [
+      "Project budget Q2",
+      "",
+      "tax = 20%",
+      "salary = 200000",
+      "100 + 20%",
+      "100 km in miles",
+      "current tax = 20%",
+      "300 + current tax",
+      "# this is a heading",
+      "// note to self",
+      "5 # inline comment",
+    ].join("\n") + "\n";
+
+    const out = renderSheet(evaluate(input));
+    expect(out).toMatchSnapshot();
   });
 });
