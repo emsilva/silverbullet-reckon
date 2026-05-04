@@ -68,13 +68,20 @@ export interface AssignmentInfo {
   isPercentageRhs: boolean; // true iff RHS is exactly `N%` (a literal percent)
 }
 
-const ASSIGNMENT_RE = /^([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)\s*(.+)$/;
+// Accepts whitespace-separated runs of identifiers as the LHS so
+// `current tax = 20%` parses as a single multi-word assignment. Internal
+// whitespace is normalized in `detectAssignment` so `current\ttax` and
+// `current  tax` map to the same name (`current tax`).
+const ASSIGNMENT_RE =
+  /^([A-Za-z_][A-Za-z0-9_]*(?:\s+[A-Za-z_][A-Za-z0-9_]*)*)\s*=(?!=)\s*(.+)$/;
 const PERCENTAGE_LITERAL_RHS_RE = /^\d+(?:\.\d+)?\s*%\s*$/;
 
 export function detectAssignment(line: string): AssignmentInfo | null {
   const m = line.match(ASSIGNMENT_RE);
   if (!m) return null;
-  const varName = m[1];
+  // Normalize all internal whitespace runs to a single space so multi-word
+  // names compare equal regardless of how the user spelled them.
+  const varName = m[1].trim().replace(/\s+/g, " ");
   const rhs = m[2].trim();
   const isPercentageRhs = PERCENTAGE_LITERAL_RHS_RE.test(rhs);
   return { varName, rhs, isPercentageRhs };
@@ -91,8 +98,31 @@ export function detectAssignment(line: string): AssignmentInfo | null {
 export function rewriteExpression(
   expr: string,
   percentageVars: ReadonlySet<string>,
+  multiWordVars: ReadonlyMap<string, string> = new Map(),
 ): string {
   let out = expr;
+
+  // (0) Multi-word variable substitution. Apply longest-original-first so
+  // overlapping names (`a b` and `a b c`) prefer the more specific match.
+  // Each registered name's literal whitespace is replaced with `\s+` in
+  // the regex so a later reference written with a tab still matches a name
+  // registered with a space. `\b` boundaries prevent false matches inside
+  // longer identifiers (`mycurrent tax` won't match `current tax`).
+  if (multiWordVars.size > 0) {
+    const names = Array.from(multiWordVars.keys()).sort(
+      (a, b) => b.length - a.length,
+    );
+    for (const name of names) {
+      if (!name.includes(" ")) continue; // single-word names need no rewrite
+      const canonical = multiWordVars.get(name)!;
+      const pattern = name
+        .split(/\s+/)
+        .map(escapeRegex)
+        .join("\\s+");
+      const re = new RegExp(`\\b${pattern}\\b`, "g");
+      out = out.replace(re, canonical);
+    }
+  }
 
   // (a) `Y + N%` / `Y - N%` (literal additive percentage).
   // Looped to chain: `100 + 20% + 30%` → `100 * (1 + 20/100) * (1 + 30/100)`.

@@ -184,3 +184,108 @@ describe("detectAssignment", () => {
     expect(detectAssignment("a == b")).toBeNull();
   });
 });
+
+describe("detectAssignment — multi-word LHS", () => {
+  it("identifies `current tax = 20%` as a multi-word percent assignment", () => {
+    expect(detectAssignment("current tax = 20%")).toEqual({
+      varName: "current tax",
+      rhs: "20%",
+      isPercentageRhs: true,
+    });
+  });
+
+  it("normalizes runs of internal whitespace to a single space", () => {
+    expect(detectAssignment("current   tax = 20%")).toEqual({
+      varName: "current tax",
+      rhs: "20%",
+      isPercentageRhs: true,
+    });
+  });
+
+  it("normalizes tab-separated identifiers to a single space", () => {
+    expect(detectAssignment("current\ttax = 20%")).toEqual({
+      varName: "current tax",
+      rhs: "20%",
+      isPercentageRhs: true,
+    });
+  });
+
+  it("accepts three-word LHS: `a b c = 5`", () => {
+    expect(detectAssignment("a b c = 5")).toEqual({
+      varName: "a b c",
+      rhs: "5",
+      isPercentageRhs: false,
+    });
+  });
+
+  it("does not treat a digit-led LHS as an assignment", () => {
+    expect(detectAssignment("100 km in miles")).toBeNull();
+  });
+
+  it("still works for single-word LHS (no regression)", () => {
+    expect(detectAssignment("tax = 20%")).toEqual({
+      varName: "tax",
+      rhs: "20%",
+      isPercentageRhs: true,
+    });
+    expect(detectAssignment("salary = 200000")).toEqual({
+      varName: "salary",
+      rhs: "200000",
+      isPercentageRhs: false,
+    });
+  });
+});
+
+describe("rewriteExpression — multi-word var substitution", () => {
+  it("substitutes a registered multi-word var with its canonical form", () => {
+    const out = rewriteExpression(
+      "100 + current tax",
+      new Set<string>(),
+      new Map([["current tax", "current_tax"]]),
+    );
+    expect(out).toBe("100 + current_tax");
+  });
+
+  it("also fires the additive-percent rewrite when the canonical name is a percent var", () => {
+    const out = rewriteExpression(
+      "100 + current tax",
+      new Set(["current_tax"]),
+      new Map([["current tax", "current_tax"]]),
+    );
+    expect(out).toBe("100 * (1 + current_tax)");
+  });
+
+  it("matches a tab-separated reference using a space-registered name", () => {
+    const out = rewriteExpression(
+      "100 + current\ttax",
+      new Set<string>(),
+      new Map([["current tax", "current_tax"]]),
+    );
+    expect(out).toBe("100 + current_tax");
+  });
+
+  it("does not false-match inside a longer identifier", () => {
+    const out = rewriteExpression(
+      "5 + mycurrent tax",
+      new Set<string>(),
+      new Map([["current tax", "current_tax"]]),
+    );
+    expect(out).toBe("5 + mycurrent tax");
+  });
+
+  it("applies longest-original-first when names overlap", () => {
+    const out = rewriteExpression(
+      "current tax inflation + 1",
+      new Set<string>(),
+      new Map([
+        ["current tax", "current_tax"],
+        ["current tax inflation", "current_tax_inflation"],
+      ]),
+    );
+    expect(out).toBe("current_tax_inflation + 1");
+  });
+
+  it("is a no-op when multiWordVars is empty (default)", () => {
+    expect(rewriteExpression("100 + tax", new Set<string>())).toBe("100 + tax");
+  });
+});
