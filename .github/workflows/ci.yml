@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: test + build + bundle drift check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+      - name: Rebuild plug
+        run: npm run build
+
+      - name: Verify committed reckon.plug.js matches rebuild
+        run: |
+          if ! git diff --quiet reckon.plug.js; then
+            echo "::error::reckon.plug.js is stale — run \`npm run build\` and commit the result."
+            git diff --stat reckon.plug.js
+            exit 1
+          fi
