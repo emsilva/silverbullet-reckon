@@ -79,19 +79,17 @@ function evaluateLine(
 
   const assignment = detectAssignment(raw.text);
 
-  // Canonical name = user's original spelling with whitespace runs replaced
-  // by underscores. Single-word names canonicalize to themselves.
-  const canonicalAssignName = assignment
-    ? assignment.varName.replace(/\s+/g, "_")
-    : null;
-
-  if (assignment && canonicalAssignName && assignment.varName.includes(" ")) {
-    multiWordVars.set(assignment.varName, canonicalAssignName);
+  let canonicalAssignName: string | null = null;
+  let exprToEvaluate: string;
+  if (assignment) {
+    canonicalAssignName = assignment.varName.replace(/\s+/g, "_");
+    if (assignment.varName.includes(" ")) {
+      multiWordVars.set(assignment.varName, canonicalAssignName);
+    }
+    exprToEvaluate = `${canonicalAssignName} = ${rewriteExpression(assignment.rhs, percentageVars, multiWordVars)}`;
+  } else {
+    exprToEvaluate = rewriteExpression(raw.text, percentageVars, multiWordVars);
   }
-
-  const exprToEvaluate = assignment
-    ? `${canonicalAssignName} = ${rewriteExpression(assignment.rhs, percentageVars, multiWordVars)}`
-    : rewriteExpression(raw.text, percentageVars, multiWordVars);
 
   let value: unknown;
   try {
@@ -100,13 +98,15 @@ function evaluateLine(
     return { kind: "comment", line: raw.line, source: raw.text };
   }
 
-  if (assignment && canonicalAssignName) {
+  if (assignment) {
+    // canonicalAssignName is non-null here because the outer `if (assignment)`
+    // block initializes it; assert with `!` since TS can't see the dependency.
     if (assignment.isPercentageRhs) {
-      percentageVars.add(canonicalAssignName);
+      percentageVars.add(canonicalAssignName!);
     } else {
       // Reassignment of a percent-var to a non-percent value: clear the
       // additive flag so subsequent references use plain arithmetic.
-      percentageVars.delete(canonicalAssignName);
+      percentageVars.delete(canonicalAssignName!);
     }
   }
 

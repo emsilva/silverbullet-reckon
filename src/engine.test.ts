@@ -322,4 +322,12 @@ describe("engine.evaluate — multi-word variable names", () => {
     const out = evaluate("salary = 200000\nsalary * 1.15\n");
     expect(out.rows[1]).toMatchObject({ kind: "value", result: "230,000" });
   });
+
+  it("reassigning a multi-word percent-var to a plain value clears percent semantics", () => {
+    const out = evaluate("current tax = 20%\ncurrent tax = 500\n100 + current tax\n");
+    // After reassignment to 500, "100 + current tax" must be plain
+    // arithmetic: 100 + 500 = 600. (If the canonical name leaked from
+    // `percentageVars`, you'd get 100 * (1 + 500) = 50100 instead.)
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "600" });
+  });
 });
