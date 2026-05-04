@@ -23,26 +23,28 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
   html { color-scheme: light dark; }
   body {
     font-family: var(--ui-font, ui-monospace, SFMono-Regular, Consolas, monospace);
+    font-variant-numeric: tabular-nums slashed-zero;
     color: var(--root-color, #1f1f1f);
     background: var(--root-background-color, #f1f1f3);
     margin: 0; padding: 12px;
     font-size: 13px;
   }
   table.reckon { width: 100%; border-collapse: collapse; }
-  td { padding: 2px 8px; vertical-align: top; white-space: pre-wrap; }
+  td { padding: 3px 10px; vertical-align: top; white-space: pre-wrap; }
   td.source { color: inherit; }
   td.result { text-align: right; opacity: 0.85; }
   tr.blank td { height: 1.2em; }
   tr.comment td.source { opacity: 0.6; color: #635c81; font-style: italic; }
   tr.heading td.source {
     font-weight: 700;
-    padding-top: 8px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid currentColor;
+    letter-spacing: -0.01em;
+    padding-top: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent);
   }
   tr.total td {
-    border-top: 1px solid currentColor;
-    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    padding-top: 7px;
     font-weight: 600;
   }
   tr.total td.label { text-align: left; }
@@ -56,8 +58,13 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
   .t-pct  { color: #a34d14; }
 
   /* Click-to-copy affordance */
-  td.result[data-clipboard-value] { cursor: pointer; }
-  td.result[data-clipboard-value]:hover { background: rgba(0, 0, 0, 0.06); }
+  td.result[data-clipboard-value] {
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 150ms ease;
+  }
+  td.result[data-clipboard-value]:hover { background: rgba(100, 74, 201, 0.10); }
+  td.result[data-clipboard-value]:active { transform: translateY(1px); }
 
   /* Dark mode — Dracula */
   @media (prefers-color-scheme: dark) {
@@ -72,7 +79,7 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
     .t-op   { opacity: 0.55; }
     .t-kw   { color: #ff79c6; }
     .t-pct  { color: #ffb86c; }
-    td.result[data-clipboard-value]:hover { background: rgba(255, 255, 255, 0.08); }
+    td.result[data-clipboard-value]:hover { background: rgba(189, 147, 249, 0.16); }
   }
 </style>
 <table class="reckon">
