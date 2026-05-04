@@ -82,6 +82,9 @@ describe("integration — evaluate(text) → renderSheet(result)", () => {
     // pure-render snapshot, and the integration contract being tested here
     // is engine output → renderer table structure.
     const table = html.match(/<table[\s\S]*<\/table>/)?.[0] ?? "";
+    // Hard-fail if the renderer ever stops emitting a <table>: keeps the
+    // snapshot from silently locking an empty string.
+    expect(table).toBeTruthy();
     expect(table).toMatchSnapshot();
   });
 });

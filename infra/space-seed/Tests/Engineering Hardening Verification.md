@@ -30,7 +30,7 @@ holds the locked table HTML.
 
 After pushing this branch, open the repo's Actions tab on GitHub and
 look for the `CI` workflow on the most recent commit. It should run
-five steps (type-check, test, build, bundle drift check) and exit
+four substantive steps after install (type-check, test, build, bundle drift check) and exit
 green. The bundle drift step is the new safety net — if anyone commits
 a stale `reckon.plug.js`, that step fails CI with a clear message
 pointing at the file.
