@@ -206,7 +206,7 @@ describe("engine.evaluate — comment escape (# and //)", () => {
 - [ ] **Step 2.2: Run the new tests**
 
 Run: `npm test -- engine`
-Expected: All new tests pass even without the fix (see note above). No regressions in the 74 existing tests.
+Expected: most new tests fail before the fix (without the line-start escape, `# heading` evaluates to `undefined` via mathjs and renders as a value row showing "undefined"). The mid-line `#` test passes pre-fix because mathjs handles inline comments natively. After implementing Step 2.3 all six new tests pass and the 74 existing tests still pass.
 
 - [ ] **Step 2.3: Implement the explicit comment escape in `src/engine.ts`**
 

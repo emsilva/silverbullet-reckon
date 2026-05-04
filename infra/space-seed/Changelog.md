@@ -22,7 +22,7 @@ tax = 20%        | 20%
 
 ### 2. `#` and `//` lines are always comments
 
-Any line whose first non-whitespace character is `#` or `//` is rendered as a
+Any line whose first non-whitespace token is `#` or `//` is rendered as a
 comment row, regardless of what comes after. Useful for headings, section
 breaks, and inline notes inside a sheet:
 

@@ -83,9 +83,6 @@ function evaluateLine(
   let exprToEvaluate: string;
   if (assignment) {
     canonicalAssignName = assignment.varName.replace(/\s+/g, "_");
-    if (assignment.varName.includes(" ")) {
-      multiWordVars.set(assignment.varName, canonicalAssignName);
-    }
     exprToEvaluate = `${canonicalAssignName} = ${rewriteExpression(assignment.rhs, percentageVars, multiWordVars)}`;
   } else {
     exprToEvaluate = rewriteExpression(raw.text, percentageVars, multiWordVars);
@@ -101,6 +98,11 @@ function evaluateLine(
   if (assignment) {
     // canonicalAssignName is non-null here because the outer `if (assignment)`
     // block initializes it; assert with `!` since TS can't see the dependency.
+    // Both registries update only after a successful evaluate so a thrown
+    // RHS doesn't leave a multi-word name registered with no mathjs binding.
+    if (assignment.varName.includes(" ")) {
+      multiWordVars.set(assignment.varName, canonicalAssignName!);
+    }
     if (assignment.isPercentageRhs) {
       percentageVars.add(canonicalAssignName!);
     } else {
