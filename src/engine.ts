@@ -2,7 +2,6 @@ import {
   create,
   parserDependencies,
   unitDependencies,
-  evaluateDependencies,
   toDependencies,
   addDependencies,
   subtractDependencies,
@@ -24,14 +23,13 @@ import {
 // remaining aggregators cover arithmetic (+, -, *, /, ^, unary±), unit
 // literals and the `to`-conversion (e.g. `100 km to miles`), and the
 // `value instanceof math.Unit` check in formatValue.
-// Drops the bundled plug from ~654 KB (with `all`) to the 150–250 KB
-// target. If a test fails after this swap, run the missing-factory recipe
-// in the plan's Task 1 / Step 1.4.
+// Drops the bundled plug from ~654 KB (with `all`) to ~326 KB.
+// To add another mathjs feature later, find its *Dependencies aggregator
+// in the mathjs source and spread it into the create() call below.
 const math: MathJsInstance = create(
   {
     ...parserDependencies,
     ...unitDependencies,
-    ...evaluateDependencies,
     ...toDependencies,
     ...addDependencies,
     ...subtractDependencies,
