@@ -5,8 +5,8 @@ export interface Token {
 }
 
 export interface TokenizeOptions {
-  identifiers: Set<string>;
-  multiWord: Set<string>;
+  identifiers: ReadonlySet<string>;
+  multiWord: ReadonlySet<string>;
   isUnit: (name: string) => boolean;
 }
 
@@ -22,16 +22,13 @@ function escapeRegex(s: string): string {
 
 function buildMultiWordRegex(name: string): RegExp {
   const parts = name.split(/\s+/).map(escapeRegex).join("\\s+");
-  return new RegExp(`^\\b${parts}\\b`);
+  return new RegExp(`^${parts}\\b`);
 }
 
 export function tokenize(source: string, options: TokenizeOptions): Token[] {
   const { identifiers, multiWord, isUnit } = options;
   const sortedMultiWord = Array.from(multiWord).sort((a, b) => b.length - a.length);
-  const compiledMultiWord = sortedMultiWord.map((name) => ({
-    name,
-    re: buildMultiWordRegex(name),
-  }));
+  const compiledMultiWord = sortedMultiWord.map((name) => buildMultiWordRegex(name));
 
   const tokens: Token[] = [];
   let pos = 0;
@@ -41,7 +38,7 @@ export function tokenize(source: string, options: TokenizeOptions): Token[] {
 
     // 1. Multi-word names (longest first)
     let matched: string | null = null;
-    for (const { re } of compiledMultiWord) {
+    for (const re of compiledMultiWord) {
       const m = re.exec(rest);
       if (m) {
         matched = m[0];

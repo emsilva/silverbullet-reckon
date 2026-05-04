@@ -134,6 +134,18 @@ describe("tokenize — multi-word longest-first", () => {
       { kind: "id", text: "tax" },
     ]);
   });
+
+  it("multi-word names with regex metacharacters are matched safely", () => {
+    // escapeRegex defends against names containing regex special chars.
+    const opts = {
+      identifiers: new Set<string>(),
+      multiWord: new Set(["q1 bonus.amount"]),
+      isUnit: () => false,
+    };
+    expect(tokenize("q1 bonus.amount", opts)).toEqual([
+      { kind: "id", text: "q1 bonus.amount" },
+    ]);
+  });
 });
 
 describe("tokenize — disambiguation", () => {
@@ -148,6 +160,15 @@ describe("tokenize — disambiguation", () => {
 
   it("returns id (fallback) when word is neither identifier nor unit", () => {
     expect(tokenize("xyz", empty)).toEqual([{ kind: "id", text: "xyz" }]);
+  });
+
+  it("a keyword in identifiers is still classified as kw (keyword precedence wins)", () => {
+    const opts = {
+      identifiers: new Set(["of"]),  // user shadowed `of` somehow
+      multiWord: new Set<string>(),
+      isUnit: () => false,
+    };
+    expect(tokenize("of", opts)).toEqual([{ kind: "kw", text: "of" }]);
   });
 });
 
