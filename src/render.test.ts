@@ -63,6 +63,12 @@ describe("renderSheet", () => {
 
 describe("integration — evaluate(text) → renderSheet(result)", () => {
   it("snapshots the full pipeline for a canonical mixed input", () => {
+    // The unit conversion row in this snapshot will show mathjs's full
+    // precision (e.g. "62.13711922373339 miles"). The pure-render snapshot
+    // above uses the shorter hand-built "62.137 mi" form. Both are
+    // intentional: pure-render tests the renderer with a fixed fixture;
+    // integration tests the engine→renderer pipeline with whatever
+    // evaluate() actually produces.
     const input = [
       "Project budget Q2",
       "",
