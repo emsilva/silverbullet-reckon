@@ -7,16 +7,33 @@ const canonical: EvaluateResult = {
   rows: [
     { kind: "comment", line: 1, source: "Project budget for Q2" },
     { kind: "blank", line: 2 },
-    { kind: "assignment", line: 3, source: "tax = 20%", varName: "tax", result: "0.2" },
+    {
+      kind: "assignment",
+      line: 3,
+      source: "tax = 20%",
+      varName: "tax",
+      result: "0.2",
+      clipboard: "0.2",
+    },
     {
       kind: "value",
       line: 4,
       source: "100 km in miles",
       result: "62.137 mi",
+      clipboard: "62.137",
     },
-    { kind: "value", line: 5, source: "300 + tax", result: "360", numeric: 360 },
+    {
+      kind: "value",
+      line: 5,
+      source: "300 + tax",
+      result: "360",
+      numeric: 360,
+      clipboard: "360",
+    },
   ],
-  total: { value: "360" },
+  total: { value: "360", clipboard: "360" },
+  identifierNames: new Set(["tax"]),
+  multiWordNames: new Set(),
 };
 
 describe("renderSheet", () => {
@@ -41,8 +58,10 @@ describe("renderSheet", () => {
 
   it("omits the total row entirely when total is null", () => {
     const out = renderSheet({
-      rows: [{ kind: "value", line: 1, source: "5 km", result: "5 km" }],
+      rows: [{ kind: "value", line: 1, source: "5 km", result: "5 km", clipboard: "5 km" }],
       total: null,
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
     });
     expect(out.html).not.toContain('class="total"');
   });
@@ -51,6 +70,8 @@ describe("renderSheet", () => {
     const out = renderSheet({
       rows: [{ kind: "comment", line: 1, source: "<script>alert(1)</script>" }],
       total: null,
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
     });
     expect(out.html).not.toContain("<script>alert(1)</script>");
     expect(out.html).toContain("&lt;script&gt;");

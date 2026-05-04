@@ -26,7 +26,7 @@ import {
 // Drops the bundled plug from ~654 KB (with `all`) to ~326 KB.
 // To add another mathjs feature later, find its *Dependencies aggregator
 // in the mathjs source and spread it into the create() call below.
-const math: MathJsInstance = create(
+export const math: MathJsInstance = create(
   {
     ...parserDependencies,
     ...unitDependencies,
@@ -53,6 +53,7 @@ export type ResultRow =
       result: string;
       /** Always finite. Undefined for units, booleans, strings, etc. */
       numeric?: number;
+      clipboard: string;
     }
   | {
       kind: "assignment";
@@ -62,15 +63,19 @@ export type ResultRow =
       result: string;
       /** Always finite. Undefined for units, booleans, strings, etc. */
       numeric?: number;
+      clipboard: string;
     };
 
 export interface TotalRow {
   value: string;
+  clipboard: string;
 }
 
 export interface EvaluateResult {
   rows: ResultRow[];
   total: TotalRow | null;
+  identifierNames: Set<string>;
+  multiWordNames: Set<string>;
 }
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -85,13 +90,28 @@ export function evaluate(text: string): EvaluateResult {
   // mathjs-legal canonical form ("current_tax"). Only multi-word names
   // are recorded; single-word assignments don't need rewriting.
   const multiWordVars = new Map<string, string>();
+  const identifierNames = new Set<string>();
+  const multiWordNames = new Set<string>();
   const rows: ResultRow[] = [];
 
   for (const raw of lines) {
-    rows.push(evaluateLine(raw, parser, percentageVars, multiWordVars));
+    const row = evaluateLine(
+      raw,
+      parser,
+      percentageVars,
+      multiWordVars,
+      identifierNames,
+      multiWordNames,
+    );
+    rows.push(row);
   }
 
-  return { rows, total: computeTotal(rows) };
+  return {
+    rows,
+    total: computeTotal(rows),
+    identifierNames,
+    multiWordNames,
+  };
 }
 
 function evaluateLine(
@@ -99,6 +119,8 @@ function evaluateLine(
   parser: ReturnType<MathJsInstance["parser"]>,
   percentageVars: Set<string>,
   multiWordVars: Map<string, string>,
+  identifierNames: Set<string>,
+  multiWordNames: Set<string>,
 ): ResultRow {
   const trimmed = raw.text.trim();
   if (trimmed === "") {
@@ -151,6 +173,9 @@ function evaluateLine(
     // RHS doesn't leave a multi-word name registered with no mathjs binding.
     if (assignment.varName.includes(" ")) {
       multiWordVars.set(assignment.varName, canonicalAssignName!);
+      multiWordNames.add(assignment.varName);
+    } else {
+      identifierNames.add(assignment.varName);
     }
     if (assignment.isPercentageRhs) {
       percentageVars.add(canonicalAssignName!);
@@ -163,6 +188,7 @@ function evaluateLine(
 
   const formatted = formatValue(value);
 
+  const clipboard = computeClipboard(value, formatted);
   if (assignment) {
     return {
       kind: "assignment",
@@ -174,6 +200,7 @@ function evaluateLine(
       // the actual value for any internal use.
       result: assignment.isPercentageRhs ? assignment.rhs : formatted.text,
       numeric: formatted.numeric,
+      clipboard,
     };
   }
   return {
@@ -182,6 +209,7 @@ function evaluateLine(
     source: raw.text,
     result: formatted.text,
     numeric: formatted.numeric,
+    clipboard,
   };
 }
 
@@ -208,6 +236,23 @@ function formatValue(value: unknown): FormattedValue {
   return { text: String(value) };
 }
 
+function computeClipboard(value: unknown, formatted: FormattedValue): string {
+  // For finite-numeric values, the underlying number — no thousand separators,
+  // no percent sign, no unit string. Matches the rule from issue #3 spec.
+  if (formatted.numeric !== undefined && Number.isFinite(formatted.numeric)) {
+    return String(formatted.numeric);
+  }
+  // For mathjs Unit values, extract the numeric part of the formatted text.
+  // The formatted text is something like "62.13711922373339 miles" — the
+  // leading number is what we want.
+  if (value instanceof math.Unit) {
+    const m = /^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(formatted.text);
+    if (m) return m[0];
+  }
+  // Fallback: copy whatever the display string is.
+  return formatted.text;
+}
+
 function computeTotal(rows: ResultRow[]): TotalRow | null {
   let sum = 0;
   let any = false;
@@ -218,5 +263,5 @@ function computeTotal(rows: ResultRow[]): TotalRow | null {
     }
   }
   if (!any) return null;
-  return { value: NUMBER_FORMATTER.format(sum) };
+  return { value: NUMBER_FORMATTER.format(sum), clipboard: String(sum) };
 }

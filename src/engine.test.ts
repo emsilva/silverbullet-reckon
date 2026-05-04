@@ -5,9 +5,9 @@ describe("engine.evaluate — arithmetic", () => {
   it("evaluates `1 + 1` to a value row with result `2`", () => {
     const out = evaluate("1 + 1\n");
     expect(out.rows).toEqual([
-      { kind: "value", line: 1, source: "1 + 1", result: "2", numeric: 2 },
+      { kind: "value", line: 1, source: "1 + 1", result: "2", numeric: 2, clipboard: "2" },
     ]);
-    expect(out.total).toEqual({ value: "2" });
+    expect(out.total).toEqual({ value: "2", clipboard: "2" });
   });
 
   it("respects parentheses and precedence", () => {
@@ -24,7 +24,12 @@ describe("engine.evaluate — arithmetic", () => {
   });
 
   it("returns no rows and no total for empty input", () => {
-    expect(evaluate("")).toEqual({ rows: [], total: null });
+    expect(evaluate("")).toEqual({
+      rows: [],
+      total: null,
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
+    });
   });
 
   it("formats unit conversion via `in` → `to` rewrite", () => {
@@ -45,7 +50,7 @@ describe("engine.evaluate — arithmetic", () => {
 
   it("auto-total sums dimensionless rows with thousands separators", () => {
     const out = evaluate("1000\n2500\n");
-    expect(out.total).toEqual({ value: "3,500" });
+    expect(out.total).toEqual({ value: "3,500", clipboard: "3500" });
   });
 });
 
@@ -152,13 +157,13 @@ describe("engine.evaluate — auto-total scope (excludes assignments)", () => {
   it("does not include `tax = 20%` assignment numeric in the total", () => {
     const out = evaluate("tax = 20%\n100\n");
     // Pre-fix: 0.2 + 100 = 100.2. Post-fix: just 100.
-    expect(out.total).toEqual({ value: "100" });
+    expect(out.total).toEqual({ value: "100", clipboard: "100" });
   });
 
   it("ignores assignment rows even with multiple value rows", () => {
     const out = evaluate("salary = 200000\n100\n200\n");
     // Pre-fix: 200000 + 100 + 200 = 200,300. Post-fix: 100 + 200 = 300.
-    expect(out.total).toEqual({ value: "300" });
+    expect(out.total).toEqual({ value: "300", clipboard: "300" });
   });
 
   it("returns null total when only assignments exist (no value rows)", () => {
@@ -311,7 +316,7 @@ describe("engine.evaluate — multi-word variable names", () => {
 
   it("auto-total ignores a multi-word assignment and counts only value rows", () => {
     const out = evaluate("current tax = 20%\n100\n200\n");
-    expect(out.total).toEqual({ value: "300" });
+    expect(out.total).toEqual({ value: "300", clipboard: "300" });
   });
 
   it("scope is fresh per evaluate(): a multi-word var defined in one call is not visible in the next", () => {
@@ -386,5 +391,80 @@ describe("engine.evaluate — headings (ATX-form supersedes comment escape)", ()
     expect(out.rows[0].kind).toBe("heading");
     const out2 = evaluate("# tax = 20%\n100 + tax\n");
     expect(out2.rows[1].kind).toBe("comment"); // `tax` undefined → silent error → comment
+  });
+});
+
+describe("engine.evaluate — clipboard values", () => {
+  it("plain value row has clipboard equal to String(numeric)", () => {
+    const out = evaluate("100 + 50\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "150", clipboard: "150" });
+  });
+
+  it("formatted value row strips thousand separators in clipboard", () => {
+    const out = evaluate("100000 + 50\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "value",
+      result: "100,050",
+      clipboard: "100050",
+    });
+  });
+
+  it("percent literal assignment clipboard is the underlying decimal", () => {
+    const out = evaluate("tax = 20%\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      result: "20%",
+      clipboard: "0.2",
+    });
+  });
+
+  it("non-percent assignment clipboard is unformatted number", () => {
+    const out = evaluate("salary = 200000\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      result: "200,000",
+      clipboard: "200000",
+    });
+  });
+
+  it("unit value clipboard is the numeric portion only (no unit)", () => {
+    const out = evaluate("100 km in miles\n");
+    if (out.rows[0].kind !== "value") throw new Error("expected value row");
+    // mathjs may format with full precision; clipboard should be the leading number.
+    expect(out.rows[0].clipboard).toMatch(/^62\.\d+$/);
+  });
+
+  it("total row has clipboard equal to unformatted sum", () => {
+    const out = evaluate("100000 + 50\n200\n");
+    expect(out.total).toEqual({ value: "100,250", clipboard: "100250" });
+  });
+});
+
+describe("engine.evaluate — identifier and multi-word name sets", () => {
+  it("populates identifierNames with single-word assignments", () => {
+    const out = evaluate("salary = 200000\ntax = 0.2\n");
+    expect(out.identifierNames).toEqual(new Set(["salary", "tax"]));
+    expect(out.multiWordNames).toEqual(new Set());
+  });
+
+  it("populates multiWordNames with multi-word assignments", () => {
+    const out = evaluate("current tax = 20%\nbudget for q2 = 200000\n");
+    expect(out.identifierNames).toEqual(new Set());
+    expect(out.multiWordNames).toEqual(new Set(["current tax", "budget for q2"]));
+  });
+
+  it("an assignment that fails to evaluate does NOT register the name", () => {
+    // `5 + ` makes mathjs throw — assignment is recorded as a comment row,
+    // and the name is NOT pushed into either set.
+    const out = evaluate("foo = 5 +\n");
+    expect(out.rows[0].kind).toBe("comment");
+    expect(out.identifierNames).toEqual(new Set());
+    expect(out.multiWordNames).toEqual(new Set());
+  });
+
+  it("headings do not register names", () => {
+    const out = evaluate("# tax = 20%\n");
+    expect(out.identifierNames).toEqual(new Set());
+    expect(out.multiWordNames).toEqual(new Set());
   });
 });
