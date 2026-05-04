@@ -10,7 +10,7 @@ exports[`integration — evaluate(text) → renderSheet(result) > snapshots the 
 <tr class="value"><td class="source">100 km in miles</td><td class="result">62.13711922373339 miles</td></tr>
 <tr class="assignment"><td class="source">current tax = 20%</td><td class="result">20%</td></tr>
 <tr class="value"><td class="source">300 + current tax</td><td class="result">360</td></tr>
-<tr class="comment"><td class="source" colspan="2"># this is a heading</td></tr>
+<tr class="heading"><td class="source" colspan="2">this is a heading</td></tr>
 <tr class="comment"><td class="source" colspan="2">// note to self</td></tr>
 <tr class="value"><td class="source">5 # inline comment</td><td class="result">5</td></tr>
 <tr class="total"><td class="label">Total</td><td class="result">485</td></tr>

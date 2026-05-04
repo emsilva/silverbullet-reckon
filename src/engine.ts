@@ -45,6 +45,7 @@ const math: MathJsInstance = create(
 export type ResultRow =
   | { kind: "blank"; line: number }
   | { kind: "comment"; line: number; source: string }
+  | { kind: "heading"; line: number; depth: number; text: string }
   | {
       kind: "value";
       line: number;
@@ -102,6 +103,20 @@ function evaluateLine(
   const trimmed = raw.text.trim();
   if (trimmed === "") {
     return { kind: "blank", line: raw.line };
+  }
+
+  // ATX-form headings (`# foo`, `## bar`, ..., `###### deepest`) supersede
+  // the comment escape for those shapes — Markdown convention. Any `#` line
+  // that doesn't match the ATX shape (no whitespace, no content, more than
+  // 6 hashes) falls through to the comment escape below.
+  const headingMatch = /^(#{1,6})\s+(\S.*)$/.exec(trimmed);
+  if (headingMatch) {
+    return {
+      kind: "heading",
+      line: raw.line,
+      depth: headingMatch[1].length,
+      text: headingMatch[2].trim(),
+    };
   }
 
   // Explicit comment escape: lines beginning with `#` or `//` are comments

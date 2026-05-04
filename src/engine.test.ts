@@ -169,12 +169,13 @@ describe("engine.evaluate — auto-total scope (excludes assignments)", () => {
 });
 
 describe("engine.evaluate — comment escape (# and //)", () => {
-  it("renders `# heading` as a comment, source preserved", () => {
+  it("renders `# heading` as a heading row (ATX-form supersedes comment escape)", () => {
     const out = evaluate("# heading\n");
     expect(out.rows[0]).toEqual({
-      kind: "comment",
+      kind: "heading",
       line: 1,
-      source: "# heading",
+      depth: 1,
+      text: "heading",
     });
   });
 
@@ -187,18 +188,19 @@ describe("engine.evaluate — comment escape (# and //)", () => {
     });
   });
 
-  it("respects leading whitespace before the marker (still a comment)", () => {
+  it("respects leading whitespace before ATX marker (trimmed `# indented` → heading)", () => {
     const out = evaluate("   # indented\n");
     expect(out.rows[0]).toEqual({
-      kind: "comment",
+      kind: "heading",
       line: 1,
-      source: "   # indented",
+      depth: 1,
+      text: "indented",
     });
   });
 
-  it("escapes `# tax = 20%` so it does not become an assignment", () => {
+  it("`# tax = 20%` is a heading, not an assignment (ATX-form takes priority)", () => {
     const out = evaluate("# tax = 20%\n");
-    expect(out.rows[0].kind).toBe("comment");
+    expect(out.rows[0].kind).toBe("heading");
   });
 
   it("does not intercept mid-line `#` (mathjs handles it as inline comment)", () => {
@@ -209,9 +211,9 @@ describe("engine.evaluate — comment escape (# and //)", () => {
     expect(out.rows[0]).toMatchObject({ kind: "value", result: "5" });
   });
 
-  it("`#` escape blocks scope leakage from the would-be assignment", () => {
+  it("heading does not leak scope: `# tax = 20%` then `100 + tax` → tax undefined → comment", () => {
     const out = evaluate("# tax = 20%\n100 + tax\n");
-    expect(out.rows[0].kind).toBe("comment");
+    expect(out.rows[0].kind).toBe("heading");
     expect(out.rows[1].kind).toBe("comment");
   });
 });
@@ -329,5 +331,60 @@ describe("engine.evaluate — multi-word variable names", () => {
     // arithmetic: 100 + 500 = 600. (If the canonical name leaked from
     // `percentageVars`, you'd get 100 * (1 + 500) = 50100 instead.)
     expect(out.rows[2]).toMatchObject({ kind: "value", result: "600" });
+  });
+});
+
+describe("engine.evaluate — headings (ATX-form supersedes comment escape)", () => {
+  it("`# Q2 budget` → heading depth 1, text `Q2 budget`", () => {
+    const out = evaluate("# Q2 budget\n");
+    expect(out.rows[0]).toEqual({
+      kind: "heading",
+      line: 1,
+      depth: 1,
+      text: "Q2 budget",
+    });
+  });
+
+  it("`### sub` → depth 3", () => {
+    const out = evaluate("### sub\n");
+    expect(out.rows[0]).toMatchObject({ kind: "heading", depth: 3, text: "sub" });
+  });
+
+  it("`###### deepest` → depth 6", () => {
+    const out = evaluate("###### deepest\n");
+    expect(out.rows[0]).toMatchObject({ kind: "heading", depth: 6, text: "deepest" });
+  });
+
+  it("`####### too many` → comment (regex requires 1-6 hashes)", () => {
+    const out = evaluate("####### too many\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("`# ` (hash + space + nothing) → comment (no content after space)", () => {
+    const out = evaluate("# \n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("`#nospace` → comment (no whitespace before content)", () => {
+    const out = evaluate("#nospace\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("`// note` → comment (no `#` at all)", () => {
+    const out = evaluate("// note\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("trims the heading text", () => {
+    const out = evaluate("##   spacey   \n");
+    expect(out.rows[0]).toMatchObject({ kind: "heading", depth: 2, text: "spacey" });
+  });
+
+  it("a heading does not register an identifier or multi-word var", () => {
+    const out = evaluate("# tax = 20%\n");
+    // `# tax = 20%` is a heading, NOT an assignment — `tax` is not in scope after.
+    expect(out.rows[0].kind).toBe("heading");
+    const out2 = evaluate("# tax = 20%\n100 + tax\n");
+    expect(out2.rows[1].kind).toBe("comment"); // `tax` undefined → silent error → comment
   });
 });

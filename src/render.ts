@@ -48,6 +48,9 @@ function rowHtml(row: ResultRow): string {
       return `<tr class="blank"><td colspan="2"></td></tr>`;
     case "comment":
       return `<tr class="comment"><td class="source" colspan="2">${escapeHtml(row.source)}</td></tr>`;
+    case "heading":
+      // Stub — Task 4 replaces this with the real heading row markup.
+      return `<tr class="heading"><td class="source" colspan="2">${escapeHtml(row.text)}</td></tr>`;
     case "value":
       return `<tr class="value"><td class="source">${escapeHtml(row.source)}</td><td class="result">${escapeHtml(row.result)}</td></tr>`;
     case "assignment":
