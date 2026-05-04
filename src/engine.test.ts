@@ -265,3 +265,61 @@ describe("engine.evaluate — percent-literal assignment display (Fix 3)", () =>
     expect(out.rows[1]).toMatchObject({ kind: "value", result: "120" });
   });
 });
+
+describe("engine.evaluate — multi-word variable names", () => {
+  it("`current tax = 20%` then `100 + current tax` → 120", () => {
+    const out = evaluate("current tax = 20%\n100 + current tax\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      varName: "current tax",
+      source: "current tax = 20%",
+      result: "20%",
+    });
+    expect(out.rows[1]).toMatchObject({
+      kind: "value",
+      source: "100 + current tax",
+      result: "120",
+    });
+  });
+
+  it("matches the canonical Soulver example: `current tax = 20%` then `300 + current tax` → 360", () => {
+    const out = evaluate("current tax = 20%\n300 + current tax\n");
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "360" });
+  });
+
+  it("multi-word non-percent assignment: `budget for q2 = 200000` then `budget for q2 * 1.15`", () => {
+    const out = evaluate("budget for q2 = 200000\nbudget for q2 * 1.15\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      varName: "budget for q2",
+      result: "200,000",
+    });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "230,000" });
+  });
+
+  it("two independent multi-word vars on the same sheet: `a b = 5` and `c d = 3` then `a b + c d` → 8", () => {
+    const out = evaluate("a b = 5\nc d = 3\na b + c d\n");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "8" });
+  });
+
+  it("multi-word reference with tabs/extra spaces still resolves", () => {
+    const out = evaluate("current tax = 20%\n100 + current\ttax\n");
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "120" });
+  });
+
+  it("auto-total ignores a multi-word assignment and counts only value rows", () => {
+    const out = evaluate("current tax = 20%\n100\n200\n");
+    expect(out.total).toEqual({ value: "300" });
+  });
+
+  it("scope is fresh per evaluate(): a multi-word var defined in one call is not visible in the next", () => {
+    evaluate("foo bar = 99\n");
+    const out = evaluate("foo bar + 1\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("single-word vars are unaffected by multi-word machinery", () => {
+    const out = evaluate("salary = 200000\nsalary * 1.15\n");
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "230,000" });
+  });
+});

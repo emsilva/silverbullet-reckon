@@ -46,10 +46,14 @@ export function evaluate(text: string): EvaluateResult {
   const lines = extractMathLines(text);
   const parser = math.parser();
   const percentageVars = new Set<string>();
+  // Maps the user's original spelling (e.g. "current tax") to the
+  // mathjs-legal canonical form ("current_tax"). Only multi-word names
+  // are recorded; single-word assignments don't need rewriting.
+  const multiWordVars = new Map<string, string>();
   const rows: ResultRow[] = [];
 
   for (const raw of lines) {
-    rows.push(evaluateLine(raw, parser, percentageVars));
+    rows.push(evaluateLine(raw, parser, percentageVars, multiWordVars));
   }
 
   return { rows, total: computeTotal(rows) };
@@ -59,6 +63,7 @@ function evaluateLine(
   raw: RawLine,
   parser: ReturnType<MathJsInstance["parser"]>,
   percentageVars: Set<string>,
+  multiWordVars: Map<string, string>,
 ): ResultRow {
   const trimmed = raw.text.trim();
   if (trimmed === "") {
@@ -73,9 +78,20 @@ function evaluateLine(
   }
 
   const assignment = detectAssignment(raw.text);
+
+  // Canonical name = user's original spelling with whitespace runs replaced
+  // by underscores. Single-word names canonicalize to themselves.
+  const canonicalAssignName = assignment
+    ? assignment.varName.replace(/\s+/g, "_")
+    : null;
+
+  if (assignment && canonicalAssignName && assignment.varName.includes(" ")) {
+    multiWordVars.set(assignment.varName, canonicalAssignName);
+  }
+
   const exprToEvaluate = assignment
-    ? `${assignment.varName} = ${rewriteExpression(assignment.rhs, percentageVars)}`
-    : rewriteExpression(raw.text, percentageVars);
+    ? `${canonicalAssignName} = ${rewriteExpression(assignment.rhs, percentageVars, multiWordVars)}`
+    : rewriteExpression(raw.text, percentageVars, multiWordVars);
 
   let value: unknown;
   try {
@@ -84,13 +100,13 @@ function evaluateLine(
     return { kind: "comment", line: raw.line, source: raw.text };
   }
 
-  if (assignment) {
+  if (assignment && canonicalAssignName) {
     if (assignment.isPercentageRhs) {
-      percentageVars.add(assignment.varName);
+      percentageVars.add(canonicalAssignName);
     } else {
       // Reassignment of a percent-var to a non-percent value: clear the
       // additive flag so subsequent references use plain arithmetic.
-      percentageVars.delete(assignment.varName);
+      percentageVars.delete(canonicalAssignName);
     }
   }
 
