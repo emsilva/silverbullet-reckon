@@ -77,7 +77,11 @@ describe("integration — evaluate(text) → renderSheet(result)", () => {
       "5 # inline comment",
     ].join("\n") + "\n";
 
-    const out = renderSheet(evaluate(input));
-    expect(out).toMatchSnapshot();
+    const { html } = renderSheet(evaluate(input));
+    // Snapshot only the <table> portion: CSS is already covered by the
+    // pure-render snapshot, and the integration contract being tested here
+    // is engine output → renderer table structure.
+    const table = html.match(/<table[\s\S]*<\/table>/)?.[0] ?? "";
+    expect(table).toMatchSnapshot();
   });
 });

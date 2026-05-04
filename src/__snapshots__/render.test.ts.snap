@@ -1,30 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`integration — evaluate(text) → renderSheet(result) > snapshots the full pipeline for a canonical mixed input 1`] = `
-{
-  "html": "<style>
-  html { color-scheme: light dark; }
-  body {
-    font-family: var(--ui-font, ui-monospace, SFMono-Regular, monospace);
-    color: var(--root-color, inherit);
-    background: var(--root-background-color, transparent);
-    margin: 0; padding: 12px;
-    font-size: 13px;
-  }
-  table.reckon { width: 100%; border-collapse: collapse; }
-  td { padding: 2px 8px; vertical-align: top; white-space: pre-wrap; }
-  td.source { color: var(--root-color, inherit); }
-  td.result { text-align: right; opacity: 0.85; }
-  tr.blank td { height: 1.2em; }
-  tr.comment td.source { opacity: 0.6; }
-  tr.total td {
-    border-top: 1px solid currentColor;
-    padding-top: 6px;
-    font-weight: 600;
-  }
-  tr.total td.label { text-align: left; }
-</style>
-<table class="reckon">
+"<table class="reckon">
 <tr class="comment"><td class="source" colspan="2">Project budget Q2</td></tr>
 <tr class="blank"><td colspan="2"></td></tr>
 <tr class="assignment"><td class="source">tax = 20%</td><td class="result">20%</td></tr>
@@ -37,9 +14,7 @@ exports[`integration — evaluate(text) → renderSheet(result) > snapshots the 
 <tr class="comment"><td class="source" colspan="2">// note to self</td></tr>
 <tr class="value"><td class="source">5 # inline comment</td><td class="result">5</td></tr>
 <tr class="total"><td class="label">Total</td><td class="result">485</td></tr>
-</table>",
-  "script": "",
-}
+</table>"
 `;
 
 exports[`renderSheet > matches the canonical snapshot 1`] = `
