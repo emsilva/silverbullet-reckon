@@ -167,3 +167,51 @@ describe("engine.evaluate — auto-total scope (excludes assignments)", () => {
     expect(out.total).toBe(null);
   });
 });
+
+describe("engine.evaluate — comment escape (# and //)", () => {
+  it("renders `# heading` as a comment, source preserved", () => {
+    const out = evaluate("# heading\n");
+    expect(out.rows[0]).toEqual({
+      kind: "comment",
+      line: 1,
+      source: "# heading",
+    });
+  });
+
+  it("renders `// note to self` as a comment", () => {
+    const out = evaluate("// note to self\n");
+    expect(out.rows[0]).toEqual({
+      kind: "comment",
+      line: 1,
+      source: "// note to self",
+    });
+  });
+
+  it("respects leading whitespace before the marker (still a comment)", () => {
+    const out = evaluate("   # indented\n");
+    expect(out.rows[0]).toEqual({
+      kind: "comment",
+      line: 1,
+      source: "   # indented",
+    });
+  });
+
+  it("escapes `# tax = 20%` so it does not become an assignment", () => {
+    const out = evaluate("# tax = 20%\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("does not intercept mid-line `#` (mathjs handles it as inline comment)", () => {
+    // Our line-start escape only fires when the trimmed line begins with
+    // `#` or `//`. mathjs natively treats trailing `#` as an inline
+    // comment, so `5 # inline` evaluates to `5` — both behaviors compose.
+    const out = evaluate("5 # inline\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "5" });
+  });
+
+  it("`#` escape blocks scope leakage from the would-be assignment", () => {
+    const out = evaluate("# tax = 20%\n100 + tax\n");
+    expect(out.rows[0].kind).toBe("comment");
+    expect(out.rows[1].kind).toBe("comment");
+  });
+});

@@ -60,8 +60,16 @@ function evaluateLine(
   parser: ReturnType<MathJsInstance["parser"]>,
   percentageVars: Set<string>,
 ): ResultRow {
-  if (raw.text.trim() === "") {
+  const trimmed = raw.text.trim();
+  if (trimmed === "") {
     return { kind: "blank", line: raw.line };
+  }
+
+  // Explicit comment escape: lines beginning with `#` or `//` are comments
+  // even if their tail would parse as math. Locks the contract regardless
+  // of whether mathjs's grammar evolves to accept them.
+  if (trimmed.startsWith("#") || trimmed.startsWith("//")) {
+    return { kind: "comment", line: raw.line, source: raw.text };
   }
 
   const assignment = detectAssignment(raw.text);
