@@ -102,7 +102,10 @@ function evaluateLine(
       line: raw.line,
       source: raw.text,
       varName: assignment.varName,
-      result: formatted.text,
+      // Percent-literal assignments display the RHS as typed (e.g. "20%"),
+      // not the underlying decimal (0.2). The `numeric` field still carries
+      // the actual value for any internal use.
+      result: assignment.isPercentageRhs ? assignment.rhs : formatted.text,
       numeric: formatted.numeric,
     };
   }

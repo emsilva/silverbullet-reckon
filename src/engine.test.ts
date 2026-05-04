@@ -92,7 +92,7 @@ describe("engine.evaluate — variables and scope", () => {
     expect(out.rows[0]).toMatchObject({
       kind: "assignment",
       varName: "tax",
-      result: "0.2",
+      result: "20%",
     });
     expect(out.rows[1]).toMatchObject({ kind: "value", result: "120" });
   });
@@ -124,7 +124,7 @@ describe("engine.evaluate — variables and scope", () => {
     // tax starts as a percentage literal — additive
     // tax is then reassigned to a plain number — additive flag must clear
     const out = evaluate("tax = 20%\ntax = 0.5\n100 + tax\n");
-    expect(out.rows[0]).toMatchObject({ kind: "assignment", varName: "tax", result: "0.2" });
+    expect(out.rows[0]).toMatchObject({ kind: "assignment", varName: "tax", result: "20%" });
     expect(out.rows[1]).toMatchObject({ kind: "assignment", varName: "tax", result: "0.5" });
     // 100 + tax must be plain arithmetic, NOT additive: 100 + 0.5 = 100.5
     expect(out.rows[2]).toMatchObject({ kind: "value", result: "100.5" });
@@ -213,5 +213,55 @@ describe("engine.evaluate — comment escape (# and //)", () => {
     const out = evaluate("# tax = 20%\n100 + tax\n");
     expect(out.rows[0].kind).toBe("comment");
     expect(out.rows[1].kind).toBe("comment");
+  });
+});
+
+describe("engine.evaluate — percent-literal assignment display (Fix 3)", () => {
+  it("`tax = 20%` shows `20%` in the result column, not `0.2`", () => {
+    const out = evaluate("tax = 20%\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      varName: "tax",
+      source: "tax = 20%",
+      result: "20%",
+    });
+  });
+
+  it("preserves user spelling: `tax = 20.5%` shows `20.5%`", () => {
+    const out = evaluate("tax = 20.5%\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      result: "20.5%",
+    });
+  });
+
+  it("preserves whitespace in RHS: `tax = 20 %` shows `20 %`", () => {
+    const out = evaluate("tax = 20 %\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      result: "20 %",
+    });
+  });
+
+  it("non-percent assignments still format normally: `salary = 200000` → `200,000`", () => {
+    const out = evaluate("salary = 200000\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      result: "200,000",
+    });
+  });
+
+  it("percent-RHS expression (not a literal) is NOT a percent display: `rate = 20% of 450` → `90`", () => {
+    const out = evaluate("rate = 20% of 450\n");
+    expect(out.rows[0]).toMatchObject({
+      kind: "assignment",
+      result: "90",
+    });
+  });
+
+  it("downstream additive percent still works after this fix: `tax = 20%` then `100 + tax` → `120`", () => {
+    const out = evaluate("tax = 20%\n100 + tax\n");
+    expect(out.rows[0]).toMatchObject({ kind: "assignment", result: "20%" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "120" });
   });
 });
