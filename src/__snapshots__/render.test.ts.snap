@@ -4,16 +4,16 @@ exports[`integration — evaluate(text) → renderSheet(result) > snapshots the 
 "<table class="reckon">
 <tr class="comment"><td class="source" colspan="2">Project budget Q2</td></tr>
 <tr class="blank"><td colspan="2"></td></tr>
-<tr class="assignment"><td class="source">tax = 20%</td><td class="result">20%</td></tr>
-<tr class="assignment"><td class="source">salary = 200000</td><td class="result">200,000</td></tr>
-<tr class="value"><td class="source">100 + 20%</td><td class="result">120</td></tr>
-<tr class="value"><td class="source">100 km in miles</td><td class="result">62.13711922373339 miles</td></tr>
-<tr class="assignment"><td class="source">current tax = 20%</td><td class="result">20%</td></tr>
-<tr class="value"><td class="source">300 + current tax</td><td class="result">360</td></tr>
+<tr class="assignment"><td class="source"><span class="t-id">tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
+<tr class="assignment"><td class="source"><span class="t-id">salary</span> <span class="t-op">=</span> <span class="t-num">200000</span></td><td class="result" data-clipboard-value="200000">200,000</td></tr>
+<tr class="value"><td class="source"><span class="t-num">100</span> <span class="t-op">+</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="120">120</td></tr>
+<tr class="value"><td class="source"><span class="t-num">100</span> <span class="t-unit">km</span> <span class="t-kw">in</span> <span class="t-unit">miles</span></td><td class="result" data-clipboard-value="62.13711922373339">62.13711922373339 miles</td></tr>
+<tr class="assignment"><td class="source"><span class="t-id">current tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
+<tr class="value"><td class="source"><span class="t-num">300</span> <span class="t-op">+</span> <span class="t-id">current tax</span></td><td class="result" data-clipboard-value="360">360</td></tr>
 <tr class="heading"><td class="source" colspan="2">this is a heading</td></tr>
 <tr class="comment"><td class="source" colspan="2">// note to self</td></tr>
-<tr class="value"><td class="source">5 # inline comment</td><td class="result">5</td></tr>
-<tr class="total"><td class="label">Total</td><td class="result">485</td></tr>
+<tr class="value"><td class="source"><span class="t-num">5</span> # <span class="t-id">inline</span> <span class="t-id">comment</span></td><td class="result" data-clipboard-value="5">5</td></tr>
+<tr class="total"><td class="label">Total</td><td class="result" data-clipboard-value="485">485</td></tr>
 </table>"
 `;
 
@@ -22,33 +22,80 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
   "html": "<style>
   html { color-scheme: light dark; }
   body {
-    font-family: var(--ui-font, ui-monospace, SFMono-Regular, monospace);
-    color: var(--root-color, inherit);
-    background: var(--root-background-color, transparent);
+    font-family: var(--ui-font, ui-monospace, SFMono-Regular, Consolas, monospace);
+    color: var(--root-color, #1f1f1f);
+    background: var(--root-background-color, #f1f1f3);
     margin: 0; padding: 12px;
     font-size: 13px;
   }
   table.reckon { width: 100%; border-collapse: collapse; }
   td { padding: 2px 8px; vertical-align: top; white-space: pre-wrap; }
-  td.source { color: var(--root-color, inherit); }
+  td.source { color: inherit; }
   td.result { text-align: right; opacity: 0.85; }
   tr.blank td { height: 1.2em; }
-  tr.comment td.source { opacity: 0.6; }
+  tr.comment td.source { opacity: 0.6; color: #635c81; font-style: italic; }
+  tr.heading td.source {
+    font-weight: 700;
+    padding-top: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid currentColor;
+  }
   tr.total td {
     border-top: 1px solid currentColor;
     padding-top: 6px;
     font-weight: 600;
   }
   tr.total td.label { text-align: left; }
+
+  /* Token coloring — Alucard (light mode default) */
+  .t-num  { color: #644ac9; }
+  .t-id   { color: #14710a; }
+  .t-unit { color: #036a96; }
+  .t-op   { opacity: 0.45; }
+  .t-kw   { color: #a3144d; font-style: italic; }
+  .t-pct  { color: #a34d14; }
+
+  /* Click-to-copy affordance */
+  td.result[data-clipboard-value] { cursor: pointer; }
+  td.result[data-clipboard-value]:hover { background: rgba(0, 0, 0, 0.06); }
+
+  /* Dark mode — Dracula */
+  @media (prefers-color-scheme: dark) {
+    body {
+      color: var(--root-color, #f8f8f2);
+      background: var(--root-background-color, #282a36);
+    }
+    tr.comment td.source { color: #6272a4; }
+    .t-num  { color: #bd93f9; }
+    .t-id   { color: #50fa7b; }
+    .t-unit { color: #8be9fd; }
+    .t-op   { opacity: 0.55; }
+    .t-kw   { color: #ff79c6; }
+    .t-pct  { color: #ffb86c; }
+    td.result[data-clipboard-value]:hover { background: rgba(255, 255, 255, 0.08); }
+  }
 </style>
 <table class="reckon">
 <tr class="comment"><td class="source" colspan="2">Project budget for Q2</td></tr>
 <tr class="blank"><td colspan="2"></td></tr>
-<tr class="assignment"><td class="source">tax = 20%</td><td class="result">0.2</td></tr>
-<tr class="value"><td class="source">100 km in miles</td><td class="result">62.137 mi</td></tr>
-<tr class="value"><td class="source">300 + tax</td><td class="result">360</td></tr>
-<tr class="total"><td class="label">Total</td><td class="result">360</td></tr>
+<tr class="heading"><td class="source" colspan="2">Inputs</td></tr>
+<tr class="assignment"><td class="source"><span class="t-id">tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
+<tr class="value"><td class="source"><span class="t-num">100</span> <span class="t-unit">km</span> <span class="t-kw">in</span> <span class="t-unit">miles</span></td><td class="result" data-clipboard-value="62.137">62.137 mi</td></tr>
+<tr class="value"><td class="source"><span class="t-num">300</span> <span class="t-op">+</span> <span class="t-id">tax</span></td><td class="result" data-clipboard-value="360">360</td></tr>
+<tr class="total"><td class="label">Total</td><td class="result" data-clipboard-value="360">360</td></tr>
 </table>",
-  "script": "",
+  "script": "(function () {
+  document.addEventListener("click", function (e) {
+    var cell = e.target.closest("[data-clipboard-value]");
+    if (!cell) return;
+    var value = cell.getAttribute("data-clipboard-value");
+    if (!value) return;
+    navigator.clipboard.writeText(value).then(function () {
+      if (typeof api === "function") {
+        api("editor.flashNotification", "Copied " + value);
+      }
+    }).catch(function () {});
+  });
+})();",
 }
 `;
