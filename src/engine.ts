@@ -1,4 +1,18 @@
-import { create, all, type MathJsInstance } from "mathjs";
+import {
+  create,
+  parserDependencies,
+  unitDependencies,
+  evaluateDependencies,
+  toDependencies,
+  addDependencies,
+  subtractDependencies,
+  multiplyDependencies,
+  divideDependencies,
+  powDependencies,
+  unaryMinusDependencies,
+  unaryPlusDependencies,
+  type MathJsInstance,
+} from "mathjs";
 import {
   extractMathLines,
   rewriteExpression,
@@ -6,7 +20,29 @@ import {
   type RawLine,
 } from "./parser";
 
-const math: MathJsInstance = create(all, {});
+// Tree-shaken mathjs: parserDependencies pulls the Parser class; the
+// remaining aggregators cover arithmetic (+, -, *, /, ^, unary±), unit
+// literals and the `to`-conversion (e.g. `100 km to miles`), and the
+// `value instanceof math.Unit` check in formatValue.
+// Drops the bundled plug from ~654 KB (with `all`) to the 150–250 KB
+// target. If a test fails after this swap, run the missing-factory recipe
+// in the plan's Task 1 / Step 1.4.
+const math: MathJsInstance = create(
+  {
+    ...parserDependencies,
+    ...unitDependencies,
+    ...evaluateDependencies,
+    ...toDependencies,
+    ...addDependencies,
+    ...subtractDependencies,
+    ...multiplyDependencies,
+    ...divideDependencies,
+    ...powDependencies,
+    ...unaryMinusDependencies,
+    ...unaryPlusDependencies,
+  },
+  {},
+);
 
 export type ResultRow =
   | { kind: "blank"; line: number }
