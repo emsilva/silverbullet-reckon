@@ -4,6 +4,36 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 ---
 
+## What's new — Visual polish (issue #3)
+
+The right-hand panel got three improvements that work together:
+
+### 1. Source-side syntax coloring (Dracula in dark, Alucard in light)
+
+Every source line is now tokenized and colored: numbers, identifiers,
+unit names, operators, the keywords `of` / `in` / `to`, and `%`. The
+palette swaps between Dracula (dark mode) and Alucard (light mode)
+automatically — no config, follows SB's theme.
+
+### 2. Markdown headings
+
+A line shaped like `# foo`, `## bar`, etc. (1–6 `#`s, whitespace, content)
+now renders as a bold full-width section label with a soft bottom
+border — the way you'd expect from any Markdown surface. The rest of
+the comment escape from issue #1 still applies (`# nospace`, `// notes`,
+`#######` remain comments).
+
+### 3. Click-to-copy on result cells
+
+Click any result on the right and the closest underlying number lands
+in your clipboard, plus a brief flash notification confirms it. Copy
+rules: numbers without thousand separators, percent literals as
+decimals, units stripped to the leading number. So clicking the result
+of `100,000 + 50` copies `100050`; clicking `tax = 20%` copies `0.2`;
+clicking `100 km in miles` copies the numeric portion without the unit.
+
+---
+
 ## What changed — Engineering hardening (issue #11)
 
 These are mostly invisible to users — math behavior is unchanged. The
