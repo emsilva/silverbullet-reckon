@@ -4,6 +4,46 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 ---
 
+## What's new — Line references (issue #8)
+
+Two new built-in references make chained calculations possible without
+re-typing or naming intermediate variables:
+
+### `lineN` — explicit row reference
+
+Refer to the numeric value of any earlier row by its source line number:
+
+    100
+    200
+    line1 + line2     # 300
+
+`lineN` is the **source** line number — the same one your editor shows.
+For pages with frontmatter, that means the first math row may be
+`line5` or `line6`, not `line1`. References to a non-existent or
+non-numeric row (heading, comment, unit, blank, or a line that hasn't
+been evaluated yet) silently classify as comment.
+
+### `ans` — previous numeric result
+
+Carries forward the most recent numeric result, skipping intervening
+non-numeric rows (units, comments, headings, blanks). Useful for
+narrative chains:
+
+    80
+    ans + 10%         # 88
+    ans * 1.2         # 105.6
+
+If the current line is the first numeric line, `ans` is undefined and
+the line classifies as comment.
+
+### Per-surface scope
+
+Both work in the page panel and inside fenced ```reckon``` blocks. Each
+surface has its own `ans`/`lineN` namespace — a block's `line1` is its
+own first row, not the page's.
+
+---
+
 ## What's new — Visual polish (issue #3)
 
 The right-hand panel got three improvements that work together:
