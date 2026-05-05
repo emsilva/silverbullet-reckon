@@ -177,3 +177,69 @@ export function rewriteExpression(
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+export interface ExtractedBlock {
+  body: string;
+  startLine: number;
+}
+
+const RECKON_FENCE_OPEN_RE = /^```reckon(?:\s|$)/;
+
+/**
+ * Extract fenced ```reckon``` blocks from a full page's text, in source
+ * order. Strips frontmatter the same way as `extractMathLines`. The body
+ * for each block is the literal contents between the opening and closing
+ * fences (no leading/trailing newline). `startLine` is the 1-based source
+ * line of the opening fence — useful for diagnostics, and (importantly)
+ * for distinguishing same-body duplicates by position.
+ *
+ * Non-reckon fences (```js, ```python, ...) are crossed over: their
+ * contents are not extracted, and a `reckon` fence opening *inside* them
+ * is not picked up.
+ */
+export function extractBlocks(text: string): ExtractedBlock[] {
+  const all = splitIntoLines(text);
+  if (all.length === 0) return [];
+
+  let i = 0;
+  // Strip frontmatter if present (mirrors extractMathLines).
+  if (all[0]?.text === FRONTMATTER_DELIM) {
+    let close = -1;
+    for (let j = 1; j < all.length; j++) {
+      if (all[j].text === FRONTMATTER_DELIM) {
+        close = j;
+        break;
+      }
+    }
+    if (close >= 0) {
+      i = close + 1;
+      if (all[i]?.text === "") i += 1;
+    }
+  }
+
+  const blocks: ExtractedBlock[] = [];
+  while (i < all.length) {
+    const line = all[i];
+    if (RECKON_FENCE_OPEN_RE.test(line.text)) {
+      const startLine = line.line;
+      const bodyLines: string[] = [];
+      i += 1;
+      while (i < all.length && !FENCE_RE.test(all[i].text)) {
+        bodyLines.push(all[i].text);
+        i += 1;
+      }
+      blocks.push({ body: bodyLines.join("\n"), startLine });
+      if (i < all.length) i += 1; // skip closing fence
+      continue;
+    }
+    if (FENCE_RE.test(line.text)) {
+      // Non-reckon fence — skip the whole block.
+      i += 1;
+      while (i < all.length && !FENCE_RE.test(all[i].text)) i += 1;
+      if (i < all.length) i += 1;
+      continue;
+    }
+    i += 1;
+  }
+  return blocks;
+}

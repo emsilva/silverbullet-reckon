@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractMathLines, splitIntoLines, rewriteExpression, detectAssignment } from "./parser";
+import { extractMathLines, splitIntoLines, rewriteExpression, detectAssignment, extractBlocks } from "./parser";
 
 describe("extractMathLines", () => {
   it("returns one RawLine per source line for plain text", () => {
@@ -287,5 +287,66 @@ describe("rewriteExpression — multi-word var substitution", () => {
 
   it("is a no-op when multiWordVars is empty (default)", () => {
     expect(rewriteExpression("100 + tax", new Set<string>())).toBe("100 + tax");
+  });
+});
+
+describe("extractBlocks", () => {
+  it("returns [] for plain text with no fenced reckon blocks", () => {
+    expect(extractBlocks("hello\nworld\n")).toEqual([]);
+  });
+
+  it("returns [] for empty input", () => {
+    expect(extractBlocks("")).toEqual([]);
+  });
+
+  it("finds a single reckon block and preserves the body", () => {
+    const text = "intro\n```reckon\n100\n200\n```\noutro\n";
+    expect(extractBlocks(text)).toEqual([
+      { body: "100\n200", startLine: 2 },
+    ]);
+  });
+
+  it("finds multiple reckon blocks in source order", () => {
+    const text = "```reckon\nA\n```\n```reckon\nB\n```\n";
+    expect(extractBlocks(text)).toEqual([
+      { body: "A", startLine: 1 },
+      { body: "B", startLine: 4 },
+    ]);
+  });
+
+  it("ignores non-reckon fences (js, python, etc.)", () => {
+    const text =
+      "```js\nconsole.log('x')\n```\n```reckon\n50\n```\n```python\nprint('y')\n```\n";
+    expect(extractBlocks(text)).toEqual([
+      { body: "50", startLine: 4 },
+    ]);
+  });
+
+  it("skips frontmatter before scanning for blocks (line numbers stay source-relative)", () => {
+    const text = "---\nreckon: true\n---\n\n```reckon\n50\n```\n";
+    expect(extractBlocks(text)).toEqual([
+      { body: "50", startLine: 5 },
+    ]);
+  });
+
+  it("preserves blank lines inside the body verbatim", () => {
+    const text = "```reckon\nfoo = 1\n\nfoo + 1\n```\n";
+    expect(extractBlocks(text)).toEqual([
+      { body: "foo = 1\n\nfoo + 1", startLine: 1 },
+    ]);
+  });
+
+  it("treats unterminated reckon fence as one block with rest-of-doc body", () => {
+    const text = "```reckon\n100\n200\n";
+    expect(extractBlocks(text)).toEqual([
+      { body: "100\n200", startLine: 1 },
+    ]);
+  });
+
+  it("emits an empty body for an immediately-closed fence", () => {
+    const text = "```reckon\n```\n";
+    expect(extractBlocks(text)).toEqual([
+      { body: "", startLine: 1 },
+    ]);
   });
 });
