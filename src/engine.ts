@@ -47,6 +47,7 @@ export const math: MathJsInstance = create(
 export type ResultRow =
   | { kind: "blank"; line: number }
   | { kind: "comment"; line: number; source: string }
+  | { kind: "error"; line: number; source: string }
   | { kind: "heading"; line: number; depth: number; text: string }
   | {
       kind: "value";
@@ -93,6 +94,16 @@ export interface PageEvalResult {
   multiWordNames: Set<string>;
 }
 
+/**
+ * Options accepted by `evaluate` and `evaluatePageContinuous`. Currently
+ * carries only `showErrors` (issue #2): when true, the failed-mathjs-parse
+ * branch in `evaluateLine` returns `kind: "error"` instead of the silent
+ * `kind: "comment"` fallback. Default false preserves V1 behavior.
+ */
+export interface EvaluateOptions {
+  showErrors?: boolean;
+}
+
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 6,
 });
@@ -115,6 +126,7 @@ function evaluateRows(
   multiWordVars: Map<string, string>,
   identifierNames: Set<string>,
   multiWordNames: Set<string>,
+  showErrors = false,
 ): { rows: ResultRow[]; total: TotalRow | null } {
   const hasTotal = rawLines.some((r) => /\btotal\b/.test(r.text));
 
@@ -122,7 +134,7 @@ function evaluateRows(
     const rows: ResultRow[] = [];
     for (const raw of rawLines) {
       rows.push(
-        evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames),
+        evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames, showErrors),
       );
     }
     return { rows, total: computeTotal(rows) };
@@ -130,14 +142,14 @@ function evaluateRows(
 
   // Two-pass: snapshot parser scope, run pass 1, restore, preset `total`, run pass 2.
   // Pass 1 lets us compute Σ from rows that don't reference `total` (the rows
-  // referencing it throw and classify as comment). Pass 2 with `total` in scope
-  // re-evaluates everything; rows that reference `total` resolve cleanly.
+  // referencing it throw and classify as comment OR error per showErrors). Pass 2 with
+  // `total` in scope re-evaluates everything; rows that reference `total` resolve cleanly.
   const snapshot = parser.getAll();
 
   const pass1Rows: ResultRow[] = [];
   for (const raw of rawLines) {
     pass1Rows.push(
-      evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames),
+      evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames, showErrors),
     );
   }
   let pass1Sum = 0;
@@ -160,7 +172,7 @@ function evaluateRows(
   const pass2Rows: ResultRow[] = [];
   for (const raw of rawLines) {
     pass2Rows.push(
-      evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames),
+      evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames, showErrors),
     );
   }
 
@@ -188,6 +200,7 @@ export function evaluateBlock(
   identifierNames: Set<string>,
   multiWordNames: Set<string>,
   lineOffset = 0,
+  showErrors = false,
 ): { rows: ResultRow[]; total: TotalRow | null } {
   const rawLines = splitIntoLines(body);
   const offsetLines: RawLine[] = lineOffset === 0
@@ -200,6 +213,7 @@ export function evaluateBlock(
     multiWordVars,
     identifierNames,
     multiWordNames,
+    showErrors,
   );
 }
 
@@ -218,7 +232,11 @@ export function evaluateBlock(
  * blocks remain parallel timelines per the design (panel uses
  * source-line numbers, blocks use this continuous counter).
  */
-export function evaluatePageContinuous(text: string): PageEvalResult {
+export function evaluatePageContinuous(
+  text: string,
+  options: EvaluateOptions = {},
+): PageEvalResult {
+  const showErrors = options.showErrors ?? false;
   const blocks = extractBlocks(text);
   const parser = math.parser();
   const percentageVars = new Set<string>();
@@ -237,6 +255,7 @@ export function evaluatePageContinuous(text: string): PageEvalResult {
       identifierNames,
       multiWordNames,
       lineOffset,
+      showErrors,
     );
     parser.remove("total");
     results.push({
@@ -251,7 +270,8 @@ export function evaluatePageContinuous(text: string): PageEvalResult {
   return { blocks: results, identifierNames, multiWordNames };
 }
 
-export function evaluate(text: string): EvaluateResult {
+export function evaluate(text: string, options: EvaluateOptions = {}): EvaluateResult {
+  const showErrors = options.showErrors ?? false;
   const lines = extractMathLines(text);
   const parser = math.parser();
   const percentageVars = new Set<string>();
@@ -265,6 +285,7 @@ export function evaluate(text: string): EvaluateResult {
     multiWordVars,
     identifierNames,
     multiWordNames,
+    showErrors,
   );
   return { rows, total, identifierNames, multiWordNames };
 }
@@ -276,6 +297,7 @@ function evaluateLine(
   multiWordVars: Map<string, string>,
   identifierNames: Set<string>,
   multiWordNames: Set<string>,
+  showErrors = false,
 ): ResultRow {
   const trimmed = raw.text.trim();
   if (trimmed === "") {
@@ -318,7 +340,12 @@ function evaluateLine(
   try {
     value = parser.evaluate(exprToEvaluate);
   } catch {
-    return { kind: "comment", line: raw.line, source: raw.text };
+    // Failed mathjs parse. Default = silent comment fallback (V1 behavior).
+    // With showErrors flag set (#2), surface as kind: "error" instead so
+    // the renderer can highlight the typo.
+    return showErrors
+      ? { kind: "error", line: raw.line, source: raw.text }
+      : { kind: "comment", line: raw.line, source: raw.text };
   }
 
   if (assignment) {

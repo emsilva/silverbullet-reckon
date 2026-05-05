@@ -758,3 +758,105 @@ describe("engine.evaluatePageContinuous — cross-block scope", () => {
     expect(out.multiWordNames.has("current tax")).toBe(true);
   });
 });
+
+describe("engine.evaluate — show-errors mode", () => {
+  it("flips the catch branch to `kind: 'error'` when showErrors=true", () => {
+    const out = evaluate("5 +\n", { showErrors: true });
+    expect(out.rows).toEqual([
+      { kind: "error", line: 1, source: "5 +" },
+    ]);
+  });
+
+  it("default (no opts) still produces `kind: 'comment'` (parity with V1)", () => {
+    const out = evaluate("5 +\n");
+    expect(out.rows).toEqual([
+      { kind: "comment", line: 1, source: "5 +" },
+    ]);
+  });
+
+  it("explicit showErrors=false still produces `kind: 'comment'`", () => {
+    const out = evaluate("5 +\n", { showErrors: false });
+    expect(out.rows).toEqual([
+      { kind: "comment", line: 1, source: "5 +" },
+    ]);
+  });
+
+  it("explicit `// foo` line stays `kind: 'comment'` even with showErrors=true", () => {
+    const out = evaluate("// just a note\n", { showErrors: true });
+    expect(out.rows).toEqual([
+      { kind: "comment", line: 1, source: "// just a note" },
+    ]);
+  });
+
+  it("explicit `# foo` (non-ATX, e.g. with no space) stays `kind: 'comment'` with showErrors=true", () => {
+    const out = evaluate("#noheading\n", { showErrors: true });
+    expect(out.rows).toEqual([
+      { kind: "comment", line: 1, source: "#noheading" },
+    ]);
+  });
+
+  it("ATX heading (`# Foo`) stays `kind: 'heading'` with showErrors=true", () => {
+    const out = evaluate("# Section Title\n", { showErrors: true });
+    expect(out.rows).toEqual([
+      { kind: "heading", line: 1, depth: 1, text: "Section Title" },
+    ]);
+  });
+
+  it("blank line stays `kind: 'blank'` with showErrors=true", () => {
+    const out = evaluate("\n", { showErrors: true });
+    expect(out.rows).toEqual([{ kind: "blank", line: 1 }]);
+  });
+
+  it("successful eval stays `kind: 'value'` with showErrors=true", () => {
+    const out = evaluate("100 + 200\n", { showErrors: true });
+    expect(out.rows).toHaveLength(1);
+    expect(out.rows[0].kind).toBe("value");
+    expect(out.rows[0].kind === "value" && out.rows[0].result).toBe("300");
+  });
+
+  it("`computeTotal` excludes error rows (Σ unchanged when an error sits among value rows)", () => {
+    const out = evaluate("100\n5 +\n200\n", { showErrors: true });
+    expect(out.rows[0].kind).toBe("value");
+    expect(out.rows[1].kind).toBe("error");
+    expect(out.rows[2].kind).toBe("value");
+    expect(out.total).toEqual({ value: "300", clipboard: "300" });
+  });
+
+  it("cascading: lineN referencing an error line becomes another error row", () => {
+    const out = evaluate("5 +\nline1 + 100\n", { showErrors: true });
+    expect(out.rows[0].kind).toBe("error"); // the typo
+    expect(out.rows[1].kind).toBe("error"); // line1 reference fails because line 1 didn't register
+  });
+
+  it("`ans` skips error rows (preserves last successful numeric)", () => {
+    const out = evaluate("100\n5 +\nans + 50\n", { showErrors: true });
+    expect(out.rows[2].kind).toBe("value");
+    expect(out.rows[2].kind === "value" && out.rows[2].result).toBe("150");
+  });
+});
+
+describe("engine.evaluatePageContinuous — show-errors mode", () => {
+  it("propagates showErrors into each block's catch branch", () => {
+    const text = "```reckon\n5 +\n```\n\n```reckon\nbad expr ?\n```\n";
+    const result = evaluatePageContinuous(text, { showErrors: true });
+    expect(result.blocks).toHaveLength(2);
+    expect(result.blocks[0].rows[0].kind).toBe("error");
+    expect(result.blocks[1].rows[0].kind).toBe("error");
+  });
+
+  it("default (no opts) still produces comment rows in each block (parity)", () => {
+    const text = "```reckon\n5 +\n```\n";
+    const result = evaluatePageContinuous(text);
+    expect(result.blocks[0].rows[0].kind).toBe("comment");
+  });
+
+  it("an error in block 1 doesn't crash block 2's evaluation", () => {
+    const text = "```reckon\n5 +\nbill = 80\n```\n\n```reckon\nbill * 1.2\n```\n";
+    const result = evaluatePageContinuous(text, { showErrors: true });
+    expect(result.blocks).toHaveLength(2);
+    expect(result.blocks[0].rows[0].kind).toBe("error");
+    expect(result.blocks[0].rows[1].kind).toBe("assignment"); // bill = 80 still parses
+    expect(result.blocks[1].rows[0].kind).toBe("value");
+    expect(result.blocks[1].rows[0].kind === "value" && result.blocks[1].rows[0].result).toBe("96");
+  });
+});
