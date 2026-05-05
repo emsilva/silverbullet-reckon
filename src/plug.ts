@@ -1,6 +1,14 @@
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { isReckonSheet, toggleReckonFrontmatter } from "./frontmatter";
-import { evaluate } from "./engine";
+import {
+  isReckonSheet,
+  isReckonIsolated,
+  toggleReckonFrontmatter,
+} from "./frontmatter";
+import {
+  evaluate,
+  evaluatePageContinuous,
+  type BlockEvalResult,
+} from "./engine";
 import { renderSheet } from "./render";
 
 const DEBOUNCE_MS = 150;
@@ -11,20 +19,59 @@ let modifyDebounce: ReturnType<typeof setTimeout> | undefined;
 
 /**
  * codeWidget callback for fenced ```reckon``` blocks.
- * Silverbullet calls this with the block body and current page name when
- * the cursor is outside the block. Each call gets a fresh engine
- * invocation so blocks have isolated scope (per spec §5).
  *
- * Edge case (V1 limit): if a block body literally starts with `---` and
- * has another `---` line later, engine.evaluate's extractMathLines will
- * skip that prefix as if it were frontmatter. Block bodies that look
- * like that are vanishingly rare; we accept the corner case in V1.
+ * Two modes:
+ * - **Continuous (default).** Reads the full page text, evaluates ALL
+ *   reckon blocks in source order through one shared parser, then
+ *   renders just this widget's slice. Variables and `ans` flow across
+ *   blocks; `lineN` and `total` stay block-internal.
+ * - **Isolated** — opted into via `reckon-isolated: true` in frontmatter.
+ *   Falls back to V1 behavior: each block evaluated in its own scope.
+ *
+ * Defensive fallback: if the body text doesn't match any extracted
+ * block (e.g. SilverBullet calls the widget mid-edit with stale body),
+ * use the isolated path to avoid blank panels.
  */
-export function reckonBlockWidget(
+export async function reckonBlockWidget(
   bodyText: string,
   _pageName: string,
-): { html: string; script: string } {
-  return renderSheet(evaluate(bodyText));
+): Promise<{ html: string; script: string }> {
+  const text = await editor.getText();
+  if (isReckonIsolated(text)) {
+    return renderSheet(evaluate(bodyText));
+  }
+  const pageResult = evaluatePageContinuous(text);
+  const block = findBlockByBody(pageResult.blocks, bodyText);
+  if (!block) {
+    return renderSheet(evaluate(bodyText));
+  }
+  return renderSheet({
+    rows: block.rows,
+    total: block.total,
+    identifierNames: pageResult.identifierNames,
+    multiWordNames: pageResult.multiWordNames,
+  });
+}
+
+/**
+ * Match the SilverBullet-supplied bodyText to one of the extracted
+ * blocks. Compares normalized bodies (CRLF→LF, drop trailing newline).
+ *
+ * Limitation: if a page has two byte-identical reckon blocks, both
+ * widgets render with the FIRST occurrence's evaluated state. This is
+ * a SilverBullet codeWidget API limitation (no positional info passed
+ * to the callback). Documented; rare in practice.
+ */
+function findBlockByBody(
+  blocks: BlockEvalResult[],
+  bodyText: string,
+): BlockEvalResult | undefined {
+  const target = normalizeBody(bodyText);
+  return blocks.find((b) => normalizeBody(b.body) === target);
+}
+
+function normalizeBody(text: string): string {
+  return text.replace(/\r\n?/g, "\n").replace(/\n$/, "");
 }
 
 /**
