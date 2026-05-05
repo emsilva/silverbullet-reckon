@@ -536,3 +536,72 @@ describe("engine.evaluate — line references (lineN)", () => {
     expect(out.rows[0].kind).toBe("comment");
   });
 });
+
+describe("engine.evaluate — line references (ans)", () => {
+  it("`ans` on row 2 resolves to row 1's numeric result", () => {
+    const out = evaluate("100\nans + 50\n");
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "150" });
+  });
+
+  it("`ans` chains: 100, ans * 2, ans + 1 → 100, 200, 201", () => {
+    const out = evaluate("100\nans * 2\nans + 1\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "100" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "200" });
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "201" });
+  });
+
+  it("`ans` skips intervening non-numeric rows (unit) — keeps last numeric", () => {
+    const out = evaluate("100\n200 km\nans + 5\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "100" });
+    expect(out.rows[1].kind).toBe("value"); // unit row, numeric undefined
+    expect(out.rows[1].kind === "value" && out.rows[1].numeric).toBeUndefined();
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "105" });
+  });
+
+  it("`ans` skips comment rows", () => {
+    const out = evaluate("100\nnot math\nans + 5\n");
+    expect(out.rows[1].kind).toBe("comment");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "105" });
+  });
+
+  it("`ans` skips blank rows", () => {
+    const out = evaluate("100\n\nans + 5\n");
+    expect(out.rows[1].kind).toBe("blank");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "105" });
+  });
+
+  it("`ans` skips heading rows", () => {
+    const out = evaluate("100\n# heading\nans + 5\n");
+    expect(out.rows[1].kind).toBe("heading");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "105" });
+  });
+
+  it("`ans` works with assignments: salary = 200000, ans * 1.15 → 230,000", () => {
+    const out = evaluate("salary = 200000\nans * 1.15\n");
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "230,000" });
+  });
+
+  it("`ans` on the first line → comment (no prior result)", () => {
+    const out = evaluate("ans + 5\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("`ans` after only non-numeric rows → comment (no numeric to reference)", () => {
+    const out = evaluate("100 km in miles\nans + 5\n");
+    expect(out.rows[0].kind).toBe("value");
+    expect(out.rows[1].kind).toBe("comment");
+  });
+
+  it("isolation: each evaluate() call has a fresh `ans`", () => {
+    evaluate("99\n");
+    const out = evaluate("ans + 1\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+
+  it("realistic chain — bill, tip, total: 80, ans + 10%, ans * 1.2 → 80, 88, 105.6", () => {
+    const out = evaluate("80\nans + 10%\nans * 1.2\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "80" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "88" });
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "105.6" });
+  });
+});

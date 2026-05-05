@@ -193,9 +193,12 @@ function evaluateLine(
   // Register the numeric result for line references (lineN).
   // Only finite numerics are referenceable; unit values, strings, and
   // booleans don't get registered, so references to those rows throw and
-  // fall through to the comment classification.
+  // fall through to the comment classification. `ans` carries the
+  // most-recent numeric — non-numeric rows leave `ans` pointing at the
+  // previous numeric result.
   if (formatted.numeric !== undefined && Number.isFinite(formatted.numeric)) {
     parser.set(`line${raw.line}`, formatted.numeric);
+    parser.set("ans", formatted.numeric);
   }
 
   if (assignment) {
