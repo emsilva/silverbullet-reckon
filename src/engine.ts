@@ -17,6 +17,7 @@ import {
   splitIntoLines,
   rewriteExpression,
   detectAssignment,
+  extractBlocks,
   type RawLine,
 } from "./parser";
 
@@ -75,6 +76,19 @@ export interface TotalRow {
 export interface EvaluateResult {
   rows: ResultRow[];
   total: TotalRow | null;
+  identifierNames: Set<string>;
+  multiWordNames: Set<string>;
+}
+
+export interface BlockEvalResult {
+  rows: ResultRow[];
+  total: TotalRow | null;
+  body: string;
+  startLine: number;
+}
+
+export interface PageEvalResult {
+  blocks: BlockEvalResult[];
   identifierNames: Set<string>;
   multiWordNames: Set<string>;
 }
@@ -180,6 +194,51 @@ export function evaluateBlock(
     identifierNames,
     multiWordNames,
   );
+}
+
+/**
+ * Evaluate a full page in cross-block continuous mode. Walks all fenced
+ * reckon blocks in source order, evaluating each through a shared
+ * parser so variables and `ans` flow across blocks. Between blocks:
+ * - line<N> bindings are cleared (each block has its own line1..N).
+ * - `total` is removed (block-scoped).
+ *
+ * `identifierNames` and `multiWordNames` accumulate across all blocks
+ * — they're used by the lexer for syntax coloring, which doesn't care
+ * about per-block scope.
+ *
+ * The page panel uses `evaluate(text)` (not this function); panel and
+ * blocks remain parallel timelines per the design.
+ */
+export function evaluatePageContinuous(text: string): PageEvalResult {
+  const blocks = extractBlocks(text);
+  const parser = math.parser();
+  const percentageVars = new Set<string>();
+  const multiWordVars = new Map<string, string>();
+  const identifierNames = new Set<string>();
+  const multiWordNames = new Set<string>();
+  const results: BlockEvalResult[] = [];
+
+  for (const block of blocks) {
+    clearLineRefs(parser);
+    const { rows, total } = evaluateBlock(
+      parser,
+      block.body,
+      percentageVars,
+      multiWordVars,
+      identifierNames,
+      multiWordNames,
+    );
+    parser.remove("total");
+    results.push({
+      rows,
+      total,
+      body: block.body,
+      startLine: block.startLine,
+    });
+  }
+
+  return { blocks: results, identifierNames, multiWordNames };
 }
 
 export function evaluate(text: string): EvaluateResult {
@@ -349,6 +408,22 @@ function computeClipboard(value: unknown, formatted: FormattedValue): string {
   }
   // Fallback: copy whatever the display string is.
   return formatted.text;
+}
+
+/**
+ * Remove all `line<N>` bindings from a parser's scope. Used between
+ * blocks in continuous mode so each block has its own block-internal
+ * `line1..N` namespace (matching what the gutter shows).
+ */
+function clearLineRefs(
+  parser: ReturnType<MathJsInstance["parser"]>,
+): void {
+  const all = parser.getAll();
+  for (const name of Object.keys(all)) {
+    if (/^line\d+$/.test(name)) {
+      parser.remove(name);
+    }
+  }
 }
 
 function computeTotal(

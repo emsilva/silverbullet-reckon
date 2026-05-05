@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { evaluate } from "./engine";
+import { evaluate, evaluatePageContinuous } from "./engine";
 
 describe("engine.evaluate — arithmetic", () => {
   it("evaluates `1 + 1` to a value row with result `2`", () => {
@@ -675,5 +675,85 @@ describe("engine.evaluate — total reference within a block", () => {
     expect(out.rows[0]).toMatchObject({ kind: "value", result: "100" });
     expect(out.rows[2]).toMatchObject({ kind: "value", result: "201" });
     expect(out.total).toEqual({ value: "501", clipboard: "501" });
+  });
+});
+
+describe("engine.evaluatePageContinuous — cross-block scope", () => {
+  it("returns no blocks for a page with no fenced reckon", () => {
+    const out = evaluatePageContinuous("no fences here\n");
+    expect(out.blocks).toEqual([]);
+  });
+
+  it("variables defined in block 1 are visible in block 2", () => {
+    const text = "```reckon\nbill = 80\n```\n```reckon\nbill * 1.2\n```\n";
+    const out = evaluatePageContinuous(text);
+    expect(out.blocks).toHaveLength(2);
+    expect(out.blocks[0].rows[0]).toMatchObject({ kind: "assignment", varName: "bill" });
+    expect(out.blocks[1].rows[0]).toMatchObject({ kind: "value", result: "96" });
+  });
+
+  it("`ans` flows from block 1's last numeric into block 2's first row", () => {
+    const text = "```reckon\n100\n200\n```\n```reckon\nans + 50\n```\n";
+    const out = evaluatePageContinuous(text);
+    expect(out.blocks[1].rows[0]).toMatchObject({ kind: "value", result: "250" });
+  });
+
+  it("`lineN` is block-internal — block 2's `line1` refers to block 2's first row, not block 1's", () => {
+    const text = "```reckon\n100\n200\n```\n```reckon\n50\nline1 + 1\n```\n";
+    const out = evaluatePageContinuous(text);
+    expect(out.blocks[1].rows[1]).toMatchObject({ kind: "value", result: "51" });
+  });
+
+  it("block-1's `lineN` bindings are cleared before block 2 evaluates", () => {
+    // Block 1 sets line1 = 100. Block 2 references line1 forward — should fail.
+    const text = "```reckon\n100\n```\n```reckon\nline1\n```\n";
+    const out = evaluatePageContinuous(text);
+    // Block 2's line1 doesn't exist yet at the time row 1 evaluates (forward ref).
+    expect(out.blocks[1].rows[0].kind).toBe("comment");
+  });
+
+  it("`total` is block-scoped — block 2's total is computed from its own rows only", () => {
+    const text = "```reckon\n100\n200\n```\n```reckon\n50\ntotal / 2\n```\n";
+    const out = evaluatePageContinuous(text);
+    // Block 2: pass1Sum = 50 (only row 1 is value). total = 50. Row 2 = 25 (derived).
+    expect(out.blocks[1].rows[1]).toMatchObject({ kind: "value", result: "25" });
+    expect(out.blocks[1].total).toEqual({ value: "50", clipboard: "50" });
+  });
+
+  it("`total` does NOT leak from block 1 into block 2", () => {
+    // Block 1 total = 300 in display. Block 2 has no value rows; its total = 0.
+    const text = "```reckon\n100\n200\n```\n```reckon\ntotal + 1\n```\n";
+    const out = evaluatePageContinuous(text);
+    // Block 2: pass1Sum = 0 (no value rows in pass 1). total = 0. Row 1 = 1.
+    expect(out.blocks[1].rows[0]).toMatchObject({ kind: "value", result: "1" });
+  });
+
+  it("each block's row.line is block-internal (1-based)", () => {
+    const text = "intro\n```reckon\n100\n200\n```\nmid\n```reckon\n50\n```\n";
+    const out = evaluatePageContinuous(text);
+    expect(out.blocks[0].rows[0].line).toBe(1);
+    expect(out.blocks[0].rows[1].line).toBe(2);
+    expect(out.blocks[1].rows[0].line).toBe(1);
+  });
+
+  it("multi-word variables flow across blocks (additive percent works)", () => {
+    const text = "```reckon\ncurrent tax = 20%\n```\n```reckon\n100 + current tax\n```\n";
+    const out = evaluatePageContinuous(text);
+    // Block 2 row 1: 100 + current tax → 100 * (1 + 0.2) = 120.
+    expect(out.blocks[1].rows[0]).toMatchObject({ kind: "value", result: "120" });
+  });
+
+  it("populates startLine and body for each block result", () => {
+    const text = "intro\nintro\n```reckon\n100\n```\nmid\n```reckon\n200\n```\n";
+    const out = evaluatePageContinuous(text);
+    expect(out.blocks[0]).toMatchObject({ body: "100", startLine: 3 });
+    expect(out.blocks[1]).toMatchObject({ body: "200", startLine: 7 });
+  });
+
+  it("preserves identifierNames and multiWordNames across blocks", () => {
+    const text = "```reckon\nfoo = 1\ncurrent tax = 5%\n```\n```reckon\nfoo + 1\n```\n";
+    const out = evaluatePageContinuous(text);
+    expect(out.identifierNames.has("foo")).toBe(true);
+    expect(out.multiWordNames.has("current tax")).toBe(true);
   });
 });
