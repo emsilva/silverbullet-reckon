@@ -4,6 +4,33 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 ---
 
+## What's new — Visible errors (issue #2)
+
+**Date:** 2026-05-05
+
+Opt in via `reckon-show-errors: true` in frontmatter. Lines that fail
+to parse render with a pink wash + red italic source instead of the
+silent grey comment fallback. Explicit comments (`//`, `#`) and ATX
+headings (`# Foo`) are unaffected — only failed-parse lines flip to
+errors.
+
+```reckon
+100
+5 +
+// the line above is now a visible error row (was silent comment by default)
+```
+
+The flag works on both surfaces: fenced ` ```reckon ``` ` block widgets
+*and* the page panel. Authors of prose-rich `reckon: true` pages who
+turn it on must comment-escape narrative paragraphs with `//` to avoid
+red rows.
+
+See `Tests/Visible Errors Verification.md` for live demos of every
+case (typos, explicit comments staying grey, cascading, Σ exclusion,
+ATX headings).
+
+---
+
 ## What's new — Cross-block continuous mode + `total` reference (issue #13)
 
 Two changes that make multi-block pages feel like one calculation.
