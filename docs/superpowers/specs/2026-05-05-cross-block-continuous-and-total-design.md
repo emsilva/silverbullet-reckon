@@ -13,7 +13,7 @@ Make multi-block pages feel like one calculation. Two coordinated changes:
 1. **Continuous mode (default).** Fenced `reckon` blocks share scope with each other in source order — variables and `ans` flow across block boundaries. A page-level frontmatter flag opts out of this behavior to preserve the V1 per-block isolation.
 2. **`total` as a referenceable identifier.** Each block's auto-Σ row gains a name. Inside the block that produced it, `total` resolves to the same number shown in the Σ row. Implemented via two-pass evaluation when `total` is referenced. To preserve the equality `total = Σ` (the property we chose two-pass for in the first place), rows that reference `total` are **derived** — they display their resolved value but don't contribute to Σ.
 
-`lineN` and the gutter stay block-internal — cross-block communication happens through named variables and `ans`, not line refs. The page panel keeps its current behavior: evaluates non-fenced lines as one isolated track. Panel and blocks are parallel timelines; no prose-math ↔ block crosstalk.
+`lineN` and the gutter flow continuously across blocks — block 1 starts at 1, block 2 picks up where block 1 left off (skipping prose between fences). `line1` from any block resolves to the first reckon row on the page. The page panel keeps its current behavior: evaluates non-fenced lines as one isolated track using source-line numbers. Panel and blocks are parallel timelines with their own numbering; no prose-math ↔ block crosstalk.
 
 ## 2. Decisions log
 
@@ -21,7 +21,7 @@ Make multi-block pages feel like one calculation. Two coordinated changes:
 |---|---|---|
 | Q1 | Bundle continuous + `total` in one spec | **A** — interactions need to be designed together (e.g. how does `total` behave in continuous mode); split would just postpone the conversation. |
 | Q2 | Activation mechanism for continuous mode | **A (inverted)** — page frontmatter flag, but **continuous is the default**. Opt-out via `reckon-isolated: true` (name proposed; bikesheddable). |
-| Q3 | What "continuous" means | Variables and `ans` flow across blocks in source order. Gutter and `lineN` stay block-internal — each block has its own `line1..lineN` namespace, matching what the gutter shows. |
+| Q3 | What "continuous" means | Variables, `ans`, AND `lineN` all flow across blocks in source order. The gutter counts continuously — block 1 starts at 1, block 2 picks up where block 1 left off (skipping prose between fences). `lineN` references that continuous counter, so `line1` from any block resolves to the first reckon row on the page. (Reversed mid-implementation from initial "block-internal lineN" choice; the user's intent during brainstorming was continuous gutter+lineN, not block-local.) |
 | Q4 | `total` semantics | **A** — block's final Σ. Two-pass evaluation: pass 1 computes Σ, pass 2 evaluates with `total` in scope. Cheap pass-2 fast-path: skip if no row's source contains the literal `total`. |
 | Q5 | Implementation strategy | **A** — naive re-evaluate per block-widget render. No cache for V1. Eval cost is tiny over typical block counts. |
 | Q6 | Edit safety | Silent breakage acceptable — broken cross-block refs classify as comment rows (existing behavior). The opt-in cost the user accepts. |

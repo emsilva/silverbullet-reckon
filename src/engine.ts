@@ -172,10 +172,13 @@ function evaluateRows(
 
 /**
  * Evaluate one fenced reckon block's body through a shared parser.
- * `body` is split into RawLines with **block-internal** 1-based numbering
- * (so `lineN` matches what the gutter shows inside the block). The
- * caller owns the parser and var sets; in cross-block continuous mode
- * those are shared across blocks.
+ * `body` is split into RawLines and offset by `lineOffset` so the
+ * resulting `row.line` values continue the cross-block counter
+ * (block 1 starts at 1; block 2 picks up where block 1 left off; etc.).
+ * The caller owns the parser and var sets; in cross-block continuous
+ * mode those are shared across blocks. The gutter and `lineN` references
+ * both flow continuously, so `line1` from any block resolves to the
+ * first reckon row on the page.
  */
 export function evaluateBlock(
   parser: ReturnType<MathJsInstance["parser"]>,
@@ -184,10 +187,14 @@ export function evaluateBlock(
   multiWordVars: Map<string, string>,
   identifierNames: Set<string>,
   multiWordNames: Set<string>,
+  lineOffset = 0,
 ): { rows: ResultRow[]; total: TotalRow | null } {
   const rawLines = splitIntoLines(body);
+  const offsetLines: RawLine[] = lineOffset === 0
+    ? rawLines
+    : rawLines.map((r) => ({ line: r.line + lineOffset, text: r.text }));
   return evaluateRows(
-    rawLines,
+    offsetLines,
     parser,
     percentageVars,
     multiWordVars,
@@ -199,16 +206,17 @@ export function evaluateBlock(
 /**
  * Evaluate a full page in cross-block continuous mode. Walks all fenced
  * reckon blocks in source order, evaluating each through a shared
- * parser so variables and `ans` flow across blocks. Between blocks:
- * - line<N> bindings are cleared (each block has its own line1..N).
- * - `total` is removed (block-scoped).
+ * parser so variables, `ans`, AND `lineN` flow across blocks. The row
+ * counter (used for the gutter and for `lineN` bindings) accumulates
+ * across blocks, so `line1` from any block points to the first reckon
+ * row on the page. `total` is removed between blocks (block-scoped).
  *
  * `identifierNames` and `multiWordNames` accumulate across all blocks
- * — they're used by the lexer for syntax coloring, which doesn't care
- * about per-block scope.
+ * — they're used by the lexer for syntax coloring.
  *
  * The page panel uses `evaluate(text)` (not this function); panel and
- * blocks remain parallel timelines per the design.
+ * blocks remain parallel timelines per the design (panel uses
+ * source-line numbers, blocks use this continuous counter).
  */
 export function evaluatePageContinuous(text: string): PageEvalResult {
   const blocks = extractBlocks(text);
@@ -218,9 +226,9 @@ export function evaluatePageContinuous(text: string): PageEvalResult {
   const identifierNames = new Set<string>();
   const multiWordNames = new Set<string>();
   const results: BlockEvalResult[] = [];
+  let lineOffset = 0;
 
   for (const block of blocks) {
-    clearLineRefs(parser);
     const { rows, total } = evaluateBlock(
       parser,
       block.body,
@@ -228,6 +236,7 @@ export function evaluatePageContinuous(text: string): PageEvalResult {
       multiWordVars,
       identifierNames,
       multiWordNames,
+      lineOffset,
     );
     parser.remove("total");
     results.push({
@@ -236,6 +245,7 @@ export function evaluatePageContinuous(text: string): PageEvalResult {
       body: block.body,
       startLine: block.startLine,
     });
+    lineOffset += rows.length;
   }
 
   return { blocks: results, identifierNames, multiWordNames };
@@ -408,22 +418,6 @@ function computeClipboard(value: unknown, formatted: FormattedValue): string {
   }
   // Fallback: copy whatever the display string is.
   return formatted.text;
-}
-
-/**
- * Remove all `line<N>` bindings from a parser's scope. Used between
- * blocks in continuous mode so each block has its own block-internal
- * `line1..N` namespace (matching what the gutter shows).
- */
-function clearLineRefs(
-  parser: ReturnType<MathJsInstance["parser"]>,
-): void {
-  const all = parser.getAll();
-  for (const name of Object.keys(all)) {
-    if (/^line\d+$/.test(name)) {
-      parser.remove(name);
-    }
-  }
 }
 
 function computeTotal(

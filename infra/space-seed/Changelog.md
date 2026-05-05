@@ -11,20 +11,25 @@ Two changes that make multi-block pages feel like one calculation.
 ### Continuous mode (default)
 
 Fenced `reckon` blocks now share scope with each other in source
-order. Variables and `ans` flow across block boundaries:
+order. Variables, `ans`, and `lineN` all flow across block boundaries:
 
 ```reckon
 bill = 80
 ```
 
 ```reckon
-bill * 1.2        # 96 — sees `bill` from the prior block
-ans + 4           # 100 — `ans` carries forward too
+bill * 1.2
+// 96 — sees `bill` from the prior block
+ans + 4
+// 100 — `ans` carries forward too
+line1 * 2
+// 160 — `line1` resolves to the first reckon row anywhere on the page
 ```
 
-`lineN` and the gutter stay block-internal — each block has its own
-`line1..lineN` namespace, matching what the gutter shows. Cross-block
-communication is through named variables and `ans`.
+The gutter counts continuously across blocks: block 1 above shows
+gutter `1`; the second block picks up at `2`. `lineN` references that
+continuous counter, so `line1` from any block on the page resolves to
+the same row.
 
 ### Opt-out: `reckon-isolated: true`
 
@@ -48,7 +53,8 @@ produced it, `total` resolves to the same number shown in the Σ row:
 ```reckon
 100
 200
-total / 2         # 150 — half of this block's Σ (300)
+total / 2
+// 150 — half of this block's Σ (300)
 ```
 
 Rows that reference `total` are *derived* — they display their

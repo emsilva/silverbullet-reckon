@@ -698,18 +698,18 @@ describe("engine.evaluatePageContinuous — cross-block scope", () => {
     expect(out.blocks[1].rows[0]).toMatchObject({ kind: "value", result: "250" });
   });
 
-  it("`lineN` is block-internal — block 2's `line1` refers to block 2's first row, not block 1's", () => {
+  it("`lineN` flows across blocks — block 2's `line1` refers to block 1's row 1", () => {
     const text = "```reckon\n100\n200\n```\n```reckon\n50\nline1 + 1\n```\n";
     const out = evaluatePageContinuous(text);
-    expect(out.blocks[1].rows[1]).toMatchObject({ kind: "value", result: "51" });
+    // Block 1: line1=100, line2=200. Block 2: line3=50, line4 = line1 + 1 = 101.
+    expect(out.blocks[1].rows[1]).toMatchObject({ kind: "value", result: "101" });
   });
 
-  it("block-1's `lineN` bindings are cleared before block 2 evaluates", () => {
-    // Block 1 sets line1 = 100. Block 2 references line1 forward — should fail.
+  it("`lineN` from block 1 is visible in block 2 (no per-block reset)", () => {
     const text = "```reckon\n100\n```\n```reckon\nline1\n```\n";
     const out = evaluatePageContinuous(text);
-    // Block 2's line1 doesn't exist yet at the time row 1 evaluates (forward ref).
-    expect(out.blocks[1].rows[0].kind).toBe("comment");
+    // Block 1 row 1: line1=100. Block 2 row 1 (line2): line1 → 100.
+    expect(out.blocks[1].rows[0]).toMatchObject({ kind: "value", result: "100" });
   });
 
   it("`total` is block-scoped — block 2's total is computed from its own rows only", () => {
@@ -728,12 +728,13 @@ describe("engine.evaluatePageContinuous — cross-block scope", () => {
     expect(out.blocks[1].rows[0]).toMatchObject({ kind: "value", result: "1" });
   });
 
-  it("each block's row.line is block-internal (1-based)", () => {
+  it("row.line continues across blocks (continuous counter)", () => {
     const text = "intro\n```reckon\n100\n200\n```\nmid\n```reckon\n50\n```\n";
     const out = evaluatePageContinuous(text);
+    // Block 0 has 2 rows numbered 1, 2. Block 1 picks up at 3.
     expect(out.blocks[0].rows[0].line).toBe(1);
     expect(out.blocks[0].rows[1].line).toBe(2);
-    expect(out.blocks[1].rows[0].line).toBe(1);
+    expect(out.blocks[1].rows[0].line).toBe(3);
   });
 
   it("multi-word variables flow across blocks (additive percent works)", () => {

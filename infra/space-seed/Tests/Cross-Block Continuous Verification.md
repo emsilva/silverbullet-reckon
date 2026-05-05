@@ -5,10 +5,12 @@ reckon: true
 # Cross-Block Continuous — Live Verification
 
 Open this page in Silverbullet (run `Plugs: Reload` first if needed).
-The fenced `reckon` blocks below should *communicate* — variables and
-`ans` flow across block boundaries in source order. The right-hand
-page panel evaluates non-fenced lines as a separate, isolated track
-(panel and blocks are parallel timelines).
+The fenced `reckon` blocks below should *communicate* — variables,
+`ans`, and `lineN` all flow across block boundaries in source order.
+The gutter counts continuously across blocks (block 1 starts at 1;
+block 2 picks up where block 1 left off). The right-hand page panel
+evaluates non-fenced lines as a separate, isolated track (panel uses
+source-line numbers; blocks use the continuous block-row counter).
 
 Compare with `Cross-Block Isolated Verification.md` to see what the
 opt-out flag changes.
@@ -44,17 +46,17 @@ ans + 50
 // expected: 250 (ans = 200 from prior block's last row)
 ```
 
-## 3. `lineN` is block-internal
+## 3. `lineN` flows across blocks (continuous gutter)
 
-`lineN` does NOT count across blocks — it stays scoped to its own
-block. The block below has three rows; `line1 + line2` references
-*this block's* first two rows, not the page's:
+The gutter counts continuously across blocks, not from 1 inside each
+block. Block 1 above shows gutter `1`; block 2 shows `2, 3`; this
+block continues from there. `lineN` references that continuous
+counter — `line1` from anywhere on the page resolves to the *first
+reckon row in the page* (the `bill = 80` assignment).
 
 ```reckon
-1000
-2000
 line1 + line2
-// expected: 3000 (this block's row 1 + row 2)
+// expected: 176 (= 80 from block 1's `bill = 80` + 96 from block 2's `bill * 1.2`)
 ```
 
 ## 4. `total` reference + derived-row exclusion
