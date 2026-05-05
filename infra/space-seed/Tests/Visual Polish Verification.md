@@ -30,10 +30,10 @@ salary * 1.15
 24 degC to degF
 
 Verify in the panel:
-- Numbers (200000, 20, 1.15, etc.) in one color (Dracula purple in dark, Alucard purple in light).
+- Numbers (200000, 20, 1.15, etc.) in purple (Monokai Pro `#ab9df2` in dark, Monokai Pro Light `#6849c2` in light).
 - Identifiers (salary, tax, current tax) in green.
 - Unit names (km, miles, degC, degF) in cyan.
-- Keywords (in, of, to) in pink (italic).
+- Keywords (in, of, to) in red (italic).
 - `%` symbol in orange.
 - Operators (`+`, `-`, `*`, `=`) faded.
 

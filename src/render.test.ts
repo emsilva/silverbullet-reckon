@@ -296,8 +296,8 @@ describe("render — script slot contains the click handler", () => {
   });
 });
 
-describe("render — Dracula/Alucard CSS palette", () => {
-  it("includes both light (Alucard) and dark (Dracula) palettes via media query", () => {
+describe("render — Monokai Pro CSS palette", () => {
+  it("includes both light and dark Monokai Pro palettes via media query", () => {
     const out = renderSheet({
       rows: [],
       total: null,
@@ -306,8 +306,8 @@ describe("render — Dracula/Alucard CSS palette", () => {
     });
     expect(out.html).toContain("@media (prefers-color-scheme: dark)");
     // Sentinel hex values from each palette
-    expect(out.html).toContain("#bd93f9"); // Dracula purple (numbers, dark)
-    expect(out.html).toContain("#644ac9"); // Alucard purple (numbers, light)
+    expect(out.html).toContain("#ab9df2"); // Monokai Pro purple (numbers, dark)
+    expect(out.html).toContain("#6849c2"); // Monokai Pro Light purple (numbers, light)
   });
 
   it("declares hover style on data-clipboard-value cells", () => {

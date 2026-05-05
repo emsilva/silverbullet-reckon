@@ -12,8 +12,8 @@ const STYLE = `
   body {
     font-family: var(--ui-font, ui-monospace, SFMono-Regular, Consolas, monospace);
     font-variant-numeric: tabular-nums slashed-zero;
-    color: var(--root-color, #1f1f1f);
-    background: var(--root-background-color, #f1f1f3);
+    color: var(--root-color, #29242a);
+    background: var(--root-background-color, #faf4f2);
     margin: 0; padding: 12px;
     font-size: 13px;
   }
@@ -22,7 +22,7 @@ const STYLE = `
   td.source { color: inherit; }
   td.result { text-align: right; opacity: 0.85; }
   tr.blank td { height: 1.2em; }
-  tr.comment td.source { opacity: 0.6; color: #635c81; font-style: italic; }
+  tr.comment td.source { opacity: 0.6; color: #72696a; font-style: italic; }
   tr.heading td.source {
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -37,13 +37,13 @@ const STYLE = `
   }
   tr.total td.label { text-align: left; }
 
-  /* Token coloring — Alucard (light mode default) */
-  .t-num  { color: #644ac9; }
-  .t-id   { color: #14710a; }
-  .t-unit { color: #036a96; }
+  /* Token coloring — Monokai Pro Light (light mode default) */
+  .t-num  { color: #6849c2; }
+  .t-id   { color: #218a55; }
+  .t-unit { color: #1c8ca8; }
   .t-op   { opacity: 0.45; }
-  .t-kw   { color: #a3144d; font-style: italic; }
-  .t-pct  { color: #a34d14; }
+  .t-kw   { color: #e14775; font-style: italic; }
+  .t-pct  { color: #c25c00; }
 
   /* Click-to-copy affordance */
   td.result[data-clipboard-value] {
@@ -51,23 +51,23 @@ const STYLE = `
     border-radius: 3px;
     transition: background 150ms ease;
   }
-  td.result[data-clipboard-value]:hover { background: rgba(100, 74, 201, 0.10); }
+  td.result[data-clipboard-value]:hover { background: rgba(104, 73, 194, 0.10); }
   td.result[data-clipboard-value]:active { transform: translateY(1px); }
 
-  /* Dark mode — Dracula */
+  /* Dark mode — Monokai Pro */
   @media (prefers-color-scheme: dark) {
     body {
-      color: var(--root-color, #f8f8f2);
-      background: var(--root-background-color, #282a36);
+      color: var(--root-color, #fcfcfa);
+      background: var(--root-background-color, #2d2a2e);
     }
-    tr.comment td.source { color: #6272a4; }
-    .t-num  { color: #bd93f9; }
-    .t-id   { color: #50fa7b; }
-    .t-unit { color: #8be9fd; }
+    tr.comment td.source { color: #727072; }
+    .t-num  { color: #ab9df2; }
+    .t-id   { color: #a9dc76; }
+    .t-unit { color: #78dce8; }
     .t-op   { opacity: 0.55; }
-    .t-kw   { color: #ff79c6; }
-    .t-pct  { color: #ffb86c; }
-    td.result[data-clipboard-value]:hover { background: rgba(189, 147, 249, 0.16); }
+    .t-kw   { color: #ff6188; }
+    .t-pct  { color: #fc9867; }
+    td.result[data-clipboard-value]:hover { background: rgba(171, 157, 242, 0.14); }
   }
 </style>`.trim();
 

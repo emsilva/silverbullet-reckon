@@ -8,12 +8,12 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 The right-hand panel got three improvements that work together:
 
-### 1. Source-side syntax coloring (Dracula in dark, Alucard in light)
+### 1. Source-side syntax coloring (Monokai Pro)
 
 Every source line is now tokenized and colored: numbers, identifiers,
 unit names, operators, the keywords `of` / `in` / `to`, and `%`. The
-palette swaps between Dracula (dark mode) and Alucard (light mode)
-automatically — no config, follows SB's theme.
+palette swaps between Monokai Pro (dark mode) and Monokai Pro Light
+(light mode) automatically — no config, follows SB's theme.
 
 ### 2. Markdown headings
 
