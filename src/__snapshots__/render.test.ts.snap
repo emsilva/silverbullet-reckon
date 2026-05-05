@@ -117,22 +117,74 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
 <tr class="total"><td class="gutter total">Σ</td><td class="label">Total</td><td class="result" data-clipboard-value="360">360</td></tr>
 </table>",
   "script": "(function () {
-  // Guard against accumulating duplicate listeners when SB re-injects the
-  // panel script on each render. The flag lives on window for the iframe's
-  // lifetime; a single click listener handles all subsequent renders.
   if (window.__reckonClickBound) return;
   window.__reckonClickBound = true;
-  document.addEventListener("click", function (e) {
-    var cell = e.target.closest("[data-clipboard-value]");
-    if (!cell) return;
-    var value = cell.getAttribute("data-clipboard-value");
+
+  function safeCopy(value) {
     if (!value) return;
     navigator.clipboard.writeText(value).then(function () {
       if (typeof api === "function") {
         api("editor.flashNotification", "Copied " + value);
       }
     }).catch(function () {});
+  }
+
+  document.addEventListener("click", function (e) {
+    var gutter = e.target.closest("td.gutter.referenceable[data-line]");
+    if (gutter) {
+      var dataLine = gutter.getAttribute("data-line");
+      if (dataLine) safeCopy("line" + dataLine);
+      return;
+    }
+    var cell = e.target.closest("[data-clipboard-value]");
+    if (!cell) return;
+    var value = cell.getAttribute("data-clipboard-value");
+    if (!value) return;
+    safeCopy(value);
   });
+
+  function parseRefs(attr) {
+    if (!attr) return [];
+    return attr.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  function findPairs(row) {
+    var dataLine = row.getAttribute("data-line");
+    if (!dataLine) return [];
+    var forwardRefs = parseRefs(row.getAttribute("data-references"));
+    var matches = [];
+    var allRows = document.querySelectorAll("tr[data-line]");
+    for (var i = 0; i < allRows.length; i++) {
+      var other = allRows[i];
+      if (other === row) continue;
+      var otherLine = other.getAttribute("data-line");
+      if (forwardRefs.indexOf(otherLine) !== -1) {
+        matches.push(other);
+        continue;
+      }
+      var otherRefs = parseRefs(other.getAttribute("data-references"));
+      if (otherRefs.indexOf(dataLine) !== -1) {
+        matches.push(other);
+      }
+    }
+    return matches;
+  }
+
+  document.addEventListener("mouseenter", function (e) {
+    if (!e.target.closest) return;
+    var row = e.target.closest("tr[data-line]");
+    if (!row) return;
+    var pairs = findPairs(row);
+    for (var i = 0; i < pairs.length; i++) pairs[i].classList.add("linref-pair");
+  }, true);
+
+  document.addEventListener("mouseleave", function (e) {
+    if (!e.target.closest) return;
+    var row = e.target.closest("tr[data-line]");
+    if (!row) return;
+    var paired = document.querySelectorAll("tr.linref-pair");
+    for (var i = 0; i < paired.length; i++) paired[i].classList.remove("linref-pair");
+  }, true);
 })();",
 }
 `;

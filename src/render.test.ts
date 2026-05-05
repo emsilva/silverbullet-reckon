@@ -418,3 +418,29 @@ describe("renderSheet — line-number gutter", () => {
     expect(out.html).toMatch(/<td class="source" colspan="2">/);
   });
 });
+
+describe("renderSheet — script wiring (gutter click + hover-pair)", () => {
+  it("script handles clicks on .gutter.referenceable as well as data-clipboard-value cells", () => {
+    const out = renderSheet(canonical);
+    expect(out.script).toMatch(/gutter[\s\S]*referenceable|referenceable[\s\S]*gutter/);
+    expect(out.script).toContain("data-clipboard-value");
+  });
+
+  it("script copies `line${dataLine}` (not the row's clipboard value) when a gutter is clicked", () => {
+    const out = renderSheet(canonical);
+    expect(out.script).toMatch(/["']line["']\s*\+\s*\w+|`line\$\{/);
+  });
+
+  it("script wires bidirectional hover-pair on tr[data-line]", () => {
+    const out = renderSheet(canonical);
+    expect(out.script).toMatch(/mouseenter|pointerenter/);
+    expect(out.script).toMatch(/mouseleave|pointerleave/);
+    expect(out.script).toContain("linref-pair");
+    expect(out.script).toMatch(/data-references|dataReferences/);
+  });
+
+  it("script remains idempotent across re-injection (panel re-render guard)", () => {
+    const out = renderSheet(canonical);
+    expect(out.script).toContain("__reckonClickBound");
+  });
+});
