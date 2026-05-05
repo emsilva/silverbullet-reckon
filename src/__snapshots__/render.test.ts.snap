@@ -42,6 +42,8 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
   td.result { text-align: right; opacity: 0.85; }
   tr.blank td { height: 1.2em; }
   tr.comment td.source { opacity: 0.6; color: #72696a; font-style: italic; }
+  tr.error td { background: rgba(225, 71, 117, 0.08); }
+  tr.error td.source { color: #e14775; font-style: italic; }
   tr.heading td.source {
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -106,6 +108,8 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
       background: var(--root-background-color, #2d2a2e);
     }
     tr.comment td.source { color: #727072; }
+    tr.error td { background: rgba(255, 97, 136, 0.12); }
+    tr.error td.source { color: #ff6188; }
     .t-num    { color: #ab9df2; }
     .t-id     { color: #a9dc76; }
     .t-unit   { color: #78dce8; }
