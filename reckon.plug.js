@@ -40,7 +40,9 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ms.test(o));if(i>=0){if(r.sp
     margin: 0; padding: 12px;
     font-size: 13px;
   }
-  table.reckon { width: 100%; border-collapse: collapse; }
+  /* Table sizes to its content so the result column sits right next to the
+     source column instead of being pushed to the far edge of the iframe. */
+  table.reckon { border-collapse: collapse; }
   td {
     padding: 3px 10px;
     vertical-align: top;

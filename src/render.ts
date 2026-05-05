@@ -17,7 +17,9 @@ const STYLE = `
     margin: 0; padding: 12px;
     font-size: 13px;
   }
-  table.reckon { width: 100%; border-collapse: collapse; }
+  /* Table sizes to its content so the result column sits right next to the
+     source column instead of being pushed to the far edge of the iframe. */
+  table.reckon { border-collapse: collapse; }
   td {
     padding: 3px 10px;
     vertical-align: top;
