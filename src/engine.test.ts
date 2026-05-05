@@ -605,3 +605,75 @@ describe("engine.evaluate — line references (ans)", () => {
     expect(out.rows[2]).toMatchObject({ kind: "value", result: "105.6" });
   });
 });
+
+describe("engine.evaluate — total reference within a block", () => {
+  it("`total` resolves to the block's auto-sum (Σ)", () => {
+    const out = evaluate("100\n200\ntotal\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "100" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "200" });
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "300", source: "total" });
+    // Σ excludes the derived row → matches the value `total` resolved to.
+    expect(out.total).toEqual({ value: "300", clipboard: "300" });
+  });
+
+  it("derived rows display their value but don't contribute to Σ", () => {
+    const out = evaluate("100\n200\ntotal / 2\n");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "150" });
+    expect(out.total).toEqual({ value: "300", clipboard: "300" });
+  });
+
+  it("multiple total references in one block all resolve to the same Σ", () => {
+    const out = evaluate("100\n200\ntotal / 2\ntotal - 50\n");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "150" });
+    expect(out.rows[3]).toMatchObject({ kind: "value", result: "250" });
+    // Σ still 300 — both derived rows excluded.
+    expect(out.total).toEqual({ value: "300", clipboard: "300" });
+  });
+
+  it("block with only a total-referencing row: pass1Sum=0, derived row resolves with total=0", () => {
+    const out = evaluate("total + 5\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "5" });
+    // The only value row is derived → excluded → no non-derived value rows → total is null.
+    expect(out.total).toBeNull();
+  });
+
+  it("variables and ans persist across two-pass within a block", () => {
+    const out = evaluate("salary = 200\nans + total\n");
+    // Pass 1: salary=200 (assignment), ans+total fails → comment. pass1Sum=0.
+    // Pass 2: salary=200, ans=200 (after row 1 of pass 2). Row 2: 200 + 0 = 200.
+    expect(out.rows[0]).toMatchObject({ kind: "assignment", varName: "salary" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "200" });
+  });
+
+  it("`Total` (capitalized) is treated as a normal id (case-sensitive reserved word)", () => {
+    const out = evaluate("100\nTotal + 5\n");
+    expect(out.rows[1].kind).toBe("comment"); // Total is undefined
+  });
+
+  it("`totally` does not match the word boundary — treated as a normal id", () => {
+    const out = evaluate("100\ntotally = 5\n");
+    expect(out.rows[1]).toMatchObject({ kind: "assignment", varName: "totally" });
+    // Since the body contains "totally" but NOT "\btotal\b" as a whole word,
+    // two-pass does NOT trigger; auto-Σ continues to include all value rows.
+    // The single value row is the 100, so Σ = 100.
+    expect(out.total).toEqual({ value: "100", clipboard: "100" });
+  });
+
+  it("two-pass does not break percentage variables registered in the same block", () => {
+    const out = evaluate("tax = 5%\n100\ntotal + tax\n");
+    // Pass 1: tax=5% (perc var registered), 100 (value), total+tax fails → comment. pass1Sum=100.
+    // Pass 2: parser.set(total, 100). Tax=5% (re-registered, idempotent). 100 (value).
+    //         Row 3: 100 + tax (additive percent rewrite) → 100 * (1 + 0.05) = 105.
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "105" });
+    // Σ excludes row 3 (derived) → only row 2 (100) counts → 100.
+    expect(out.total).toEqual({ value: "100", clipboard: "100" });
+  });
+
+  it("blocks without `total` evaluate single-pass (existing behavior unchanged)", () => {
+    // Sanity test that the fast-path skip preserves identical behavior.
+    const out = evaluate("100\n200\nans + 1\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", result: "100" });
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "201" });
+    expect(out.total).toEqual({ value: "501", clipboard: "501" });
+  });
+});

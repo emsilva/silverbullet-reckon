@@ -90,8 +90,9 @@ const NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
  * cross-block continuous mode). Returns the result rows plus the auto-Σ
  * row computed via `computeTotal`.
  *
- * Today this is single-pass; Task 5 layers in two-pass behavior for
- * `total` references on top of this same shape.
+ * When any row's source contains `\btotal\b`, two-pass evaluation is used:
+ * pass 1 computes Σ from rows that don't reference `total`; pass 2
+ * re-evaluates with `total` preset to that Σ so derived rows resolve.
  */
 function evaluateRows(
   rawLines: RawLine[],
@@ -101,20 +102,58 @@ function evaluateRows(
   identifierNames: Set<string>,
   multiWordNames: Set<string>,
 ): { rows: ResultRow[]; total: TotalRow | null } {
-  const rows: ResultRow[] = [];
+  const hasTotal = rawLines.some((r) => /\btotal\b/.test(r.text));
+
+  if (!hasTotal) {
+    const rows: ResultRow[] = [];
+    for (const raw of rawLines) {
+      rows.push(
+        evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames),
+      );
+    }
+    return { rows, total: computeTotal(rows) };
+  }
+
+  // Two-pass: snapshot parser scope, run pass 1, restore, preset `total`, run pass 2.
+  // Pass 1 lets us compute Σ from rows that don't reference `total` (the rows
+  // referencing it throw and classify as comment). Pass 2 with `total` in scope
+  // re-evaluates everything; rows that reference `total` resolve cleanly.
+  const snapshot = parser.getAll();
+
+  const pass1Rows: ResultRow[] = [];
   for (const raw of rawLines) {
-    rows.push(
-      evaluateLine(
-        raw,
-        parser,
-        percentageVars,
-        multiWordVars,
-        identifierNames,
-        multiWordNames,
-      ),
+    pass1Rows.push(
+      evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames),
     );
   }
-  return { rows, total: computeTotal(rows) };
+  let pass1Sum = 0;
+  for (const row of pass1Rows) {
+    if (row.kind === "value" && row.numeric !== undefined && Number.isFinite(row.numeric)) {
+      pass1Sum += row.numeric;
+    }
+  }
+
+  // Roll the parser back to its pre-block state, then preset `total` to the
+  // pass-1 sum. percVars/mwVars/identifierNames/multiWordNames intentionally
+  // are NOT rolled back — pass 2 will re-add the same entries (idempotent
+  // Set.add / Map.set), so the final accumulator state matches pass 2.
+  parser.clear();
+  for (const [k, v] of Object.entries(snapshot)) {
+    parser.set(k, v);
+  }
+  parser.set("total", pass1Sum);
+
+  const pass2Rows: ResultRow[] = [];
+  for (const raw of rawLines) {
+    pass2Rows.push(
+      evaluateLine(raw, parser, percentageVars, multiWordVars, identifierNames, multiWordNames),
+    );
+  }
+
+  // Σ rule: rows whose source mentions `total` are derived — they display
+  // their resolved value but do not contribute to Σ. This guarantees
+  // Σ === total (the property we chose two-pass for).
+  return { rows: pass2Rows, total: computeTotal(pass2Rows, { excludeTotalRefs: true }) };
 }
 
 /**
@@ -312,14 +351,18 @@ function computeClipboard(value: unknown, formatted: FormattedValue): string {
   return formatted.text;
 }
 
-function computeTotal(rows: ResultRow[]): TotalRow | null {
+function computeTotal(
+  rows: ResultRow[],
+  opts?: { excludeTotalRefs?: boolean },
+): TotalRow | null {
   let sum = 0;
   let any = false;
   for (const row of rows) {
-    if (row.kind === "value" && row.numeric !== undefined && Number.isFinite(row.numeric)) {
-      sum += row.numeric;
-      any = true;
-    }
+    if (row.kind !== "value") continue;
+    if (row.numeric === undefined || !Number.isFinite(row.numeric)) continue;
+    if (opts?.excludeTotalRefs && /\btotal\b/.test(row.source)) continue;
+    sum += row.numeric;
+    any = true;
   }
   if (!any) return null;
   return { value: NUMBER_FORMATTER.format(sum), clipboard: String(sum) };
