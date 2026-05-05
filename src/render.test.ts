@@ -444,3 +444,30 @@ describe("renderSheet — script wiring (gutter click + hover-pair)", () => {
     expect(out.script).toContain("__reckonClickBound");
   });
 });
+
+describe("renderSheet — totalref source coloring", () => {
+  it("`total` source span gets .t-totalref class in a value row", () => {
+    const out = evaluate("100\n200\ntotal / 2\n");
+    const html = renderSheet(out).html;
+    expect(html).toContain('<span class="t-totalref">total</span>');
+  });
+
+  it("non-`total` words like `Totally` do NOT get .t-totalref", () => {
+    const out = evaluate("Totally = 5\n");
+    const html = renderSheet(out).html;
+    expect(html).not.toContain('class="t-totalref"');
+  });
+
+  it("light-mode CSS contains .t-totalref color rule", () => {
+    const out = evaluate("100\n");
+    const html = renderSheet(out).html;
+    expect(html).toContain(".t-totalref { color: #a67c00; }");
+  });
+
+  it("dark-mode CSS contains .t-totalref color override", () => {
+    const out = evaluate("100\n");
+    const html = renderSheet(out).html;
+    // Match either ordering inside the @media block.
+    expect(html).toMatch(/@media \(prefers-color-scheme: dark\)[\s\S]*\.t-totalref \{ color: #ffd866; \}/);
+  });
+});

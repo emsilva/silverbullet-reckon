@@ -75,6 +75,7 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ds.test(o));if(i>=0){if(r.sp
   .t-kw     { color: #e14775; font-style: italic; }
   .t-pct    { color: #c25c00; }
   .t-linref { color: #a67c00; }
+  .t-totalref { color: #a67c00; }
 
   /* Click-to-copy affordance \u2014 transition inherited from base td rule */
   td.result[data-clipboard-value] {
@@ -123,6 +124,7 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ds.test(o));if(i>=0){if(r.sp
     .t-kw     { color: #ff6188; }
     .t-pct    { color: #fc9867; }
     .t-linref { color: #ffd866; }
+    .t-totalref { color: #ffd866; }
     td.result[data-clipboard-value]:hover { background: rgba(171, 157, 242, 0.14); }
     td.gutter.referenceable:hover { background: rgba(171, 157, 242, 0.14); }
     tr.linref-pair td { background: rgba(171, 157, 242, 0.13); }
