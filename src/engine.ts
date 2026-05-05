@@ -14,6 +14,7 @@ import {
 } from "mathjs";
 import {
   extractMathLines,
+  splitIntoLines,
   rewriteExpression,
   detectAssignment,
   type RawLine,
@@ -82,36 +83,82 @@ const NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 6,
 });
 
+/**
+ * Evaluate a sequence of pre-numbered RawLines through a shared parser.
+ * The parser, percentage/multi-word var sets, and identifier-name sets
+ * are externally owned so callers can persist them across calls (e.g.
+ * cross-block continuous mode). Returns the result rows plus the auto-Σ
+ * row computed via `computeTotal`.
+ *
+ * Today this is single-pass; Task 5 layers in two-pass behavior for
+ * `total` references on top of this same shape.
+ */
+function evaluateRows(
+  rawLines: RawLine[],
+  parser: ReturnType<MathJsInstance["parser"]>,
+  percentageVars: Set<string>,
+  multiWordVars: Map<string, string>,
+  identifierNames: Set<string>,
+  multiWordNames: Set<string>,
+): { rows: ResultRow[]; total: TotalRow | null } {
+  const rows: ResultRow[] = [];
+  for (const raw of rawLines) {
+    rows.push(
+      evaluateLine(
+        raw,
+        parser,
+        percentageVars,
+        multiWordVars,
+        identifierNames,
+        multiWordNames,
+      ),
+    );
+  }
+  return { rows, total: computeTotal(rows) };
+}
+
+/**
+ * Evaluate one fenced reckon block's body through a shared parser.
+ * `body` is split into RawLines with **block-internal** 1-based numbering
+ * (so `lineN` matches what the gutter shows inside the block). The
+ * caller owns the parser and var sets; in cross-block continuous mode
+ * those are shared across blocks.
+ */
+export function evaluateBlock(
+  parser: ReturnType<MathJsInstance["parser"]>,
+  body: string,
+  percentageVars: Set<string>,
+  multiWordVars: Map<string, string>,
+  identifierNames: Set<string>,
+  multiWordNames: Set<string>,
+): { rows: ResultRow[]; total: TotalRow | null } {
+  const rawLines = splitIntoLines(body);
+  return evaluateRows(
+    rawLines,
+    parser,
+    percentageVars,
+    multiWordVars,
+    identifierNames,
+    multiWordNames,
+  );
+}
+
 export function evaluate(text: string): EvaluateResult {
   const lines = extractMathLines(text);
   const parser = math.parser();
   const percentageVars = new Set<string>();
-  // Maps the user's original spelling (e.g. "current tax") to the
-  // mathjs-legal canonical form ("current_tax"). Only multi-word names
-  // are recorded; single-word assignments don't need rewriting.
   const multiWordVars = new Map<string, string>();
   const identifierNames = new Set<string>();
   const multiWordNames = new Set<string>();
-  const rows: ResultRow[] = [];
-
-  for (const raw of lines) {
-    const row = evaluateLine(
-      raw,
-      parser,
-      percentageVars,
-      multiWordVars,
-      identifierNames,
-      multiWordNames,
-    );
-    rows.push(row);
-  }
-
-  return {
-    rows,
-    total: computeTotal(rows),
+  const { rows, total } = evaluateRows(
+    lines,
+    parser,
+    percentageVars,
+    multiWordVars,
     identifierNames,
     multiWordNames,
-  };
+  );
+  return { rows, total, identifierNames, multiWordNames };
 }
 
 function evaluateLine(
