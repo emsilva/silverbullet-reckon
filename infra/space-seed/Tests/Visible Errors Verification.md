@@ -1,6 +1,7 @@
 ---
 reckon: true
 reckon-show-errors: true
+reckon-isolated: true
 ---
 
 # Visible Errors — Live Verification
@@ -10,9 +11,15 @@ fail mathjs parse should render as **error rows**: pink row wash +
 red italic source. Compare with the silent grey treatment of
 explicit `//` comments.
 
+The page also has `reckon-isolated: true` so each block has its own
+scope and gutter — `line1` inside any section refers to the first
+reckon row of that section's block, not the first reckon row of the
+page. This keeps each section's expected-value annotations
+self-contained.
+
 To verify default behavior, edit the frontmatter to remove
-`reckon-show-errors: true`, run `Plugs: Reload`, and reload the page
-— the same lines should now render as silent grey comment rows.
+`reckon-show-errors: true` and reload the page — the same lines
+should now render as silent grey comment rows.
 
 ## 1. A typo flagged as error
 
@@ -29,15 +36,20 @@ ans + 50
 
 ## 2. Explicit comments stay grey
 
-Even with `reckon-show-errors: true`, lines that start with `//` or `#`
-are explicit prose, not errors. They render the way they always have:
+Even with `reckon-show-errors: true`, lines that start with `//` are
+explicit prose, not errors. They render the way they always have:
 
 ```reckon
 // this is intentional prose — should be grey, not red
-# this is also intentional prose — same treatment
+// even if the next line is broken math, this line stays grey
+5 +
 100 + 200
-// expected: line 1 grey, line 2 grey, line 3 → 300
+// expected: line 1 grey, line 2 grey, line 3 error (red), line 4 → 300
 ```
+
+(Lines starting with `#` followed by a space are ATX headings — see
+section 5. Lines starting with `#` without a space are comments via
+the explicit-escape rule, but that shape is unusual in practice.)
 
 ## 3. Σ excludes error rows
 
