@@ -4,6 +4,60 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 ---
 
+## What's new — Line-number gutter (issue #12)
+
+Reckon panels and `reckon` blocks now show a line-number gutter on
+every row, click-to-copy on referenceable gutters, and bidirectional
+hover-pair highlighting on `lineN` references.
+
+### The gutter
+
+Every row gets a number on the left. Rows that produce a referenceable
+result (value, assignment) are styled stronger; comment, blank, and
+heading rows are faded. The total row shows `Σ` instead of a number.
+
+```reckon
+salary = 200000
+tax = 20%
+salary * (1 + tax)
+```
+
+The numbers are the *source* line numbers of each row — same as your
+editor — so `lineN` references stay coherent with what you see.
+
+### Click a gutter to copy `lineN`
+
+Click the gutter on a referenceable row and `line<N>` lands in your
+clipboard with a flash, ready to paste into another expression. Same
+copy/flash pattern as the existing result-cell click from issue #3.
+
+### Hover-pair highlighting
+
+Hover any row that contains `lineN` and the referenced row lights up.
+Hover a row that *is* referenced and every row that references it
+lights up — the find-all-uses pattern. Make a chain like
+
+```reckon
+100
+200
+line1 + line2
+ans * 2
+```
+
+and try hovering each row to see the dependencies surface.
+
+`ans` is excluded from hover highlighting in this iteration — the
+engine doesn't yet expose which row `ans` resolved to. Future
+iteration may add it.
+
+### Source coloring for `lineN`
+
+`lineN` references in the source column are colored in Monokai gold
+(light) / yellow (dark), distinct from regular identifiers and
+numbers, so references stand out at a glance.
+
+---
+
 ## What's new — Line references (issue #8)
 
 Two new built-in references make chained calculations possible without
