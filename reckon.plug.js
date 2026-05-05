@@ -105,7 +105,7 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ms.test(o));if(i>=0){if(r.sp
     color: color-mix(in srgb, currentColor 65%, transparent);
     font-weight: 600;
   }
-  tr.linref-pair td { background: rgba(104, 73, 194, 0.07); }
+  tr.linref-pair td { background: rgba(104, 73, 194, 0.08); }
 
   /* Dark mode \u2014 Monokai Pro */
   @media (prefers-color-scheme: dark) {
@@ -123,7 +123,7 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ms.test(o));if(i>=0){if(r.sp
     .t-linref { color: #ffd866; }
     td.result[data-clipboard-value]:hover { background: rgba(171, 157, 242, 0.14); }
     td.gutter.referenceable:hover { background: rgba(171, 157, 242, 0.14); }
-    tr.linref-pair td { background: rgba(171, 157, 242, 0.10); }
+    tr.linref-pair td { background: rgba(171, 157, 242, 0.13); }
   }
 </style>`.trim(),C0=`
 (function () {
