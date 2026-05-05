@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { isReckonSheet, toggleReckonFrontmatter, isReckonIsolated } from "./frontmatter";
+import {
+  isReckonSheet,
+  toggleReckonFrontmatter,
+  isReckonIsolated,
+  isReckonShowErrors,
+} from "./frontmatter";
 
 describe("isReckonSheet", () => {
   it("returns false for a page with no frontmatter", () => {
@@ -111,5 +116,49 @@ describe("isReckonIsolated", () => {
 
   it("returns false for empty input", () => {
     expect(isReckonIsolated("")).toBe(false);
+  });
+});
+
+describe("isReckonShowErrors", () => {
+  it("returns false for a page with no frontmatter", () => {
+    expect(isReckonShowErrors("body\n")).toBe(false);
+  });
+
+  it("returns false for frontmatter without the flag", () => {
+    expect(isReckonShowErrors("---\nreckon: true\n---\n")).toBe(false);
+  });
+
+  it("returns true for `reckon-show-errors: true`", () => {
+    expect(isReckonShowErrors("---\nreckon-show-errors: true\n---\n")).toBe(true);
+  });
+
+  it("returns true alongside `reckon: true` and `reckon-isolated: true` and other keys", () => {
+    expect(
+      isReckonShowErrors(
+        "---\nreckon: true\nreckon-isolated: true\nreckon-show-errors: true\ntags: foo\n---\n",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false for `reckon-show-errors: false`", () => {
+    expect(isReckonShowErrors("---\nreckon-show-errors: false\n---\n")).toBe(false);
+  });
+
+  it("returns false for quoted `reckon-show-errors: \"true\"`", () => {
+    expect(isReckonShowErrors("---\nreckon-show-errors: \"true\"\n---\n")).toBe(false);
+  });
+
+  it("returns false when the flag is indented (not top-level)", () => {
+    expect(
+      isReckonShowErrors("---\nfoo:\n  reckon-show-errors: true\n---\n"),
+    ).toBe(false);
+  });
+
+  it("returns false when frontmatter is unterminated", () => {
+    expect(isReckonShowErrors("---\nreckon-show-errors: true\n\nbody\n")).toBe(false);
+  });
+
+  it("returns false for empty input", () => {
+    expect(isReckonShowErrors("")).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 const FRONTMATTER_DELIM = "---";
 const RECKON_LINE_RE = /^reckon:\s*true\s*$/;
 const RECKON_ISOLATED_LINE_RE = /^reckon-isolated:\s*true\s*$/;
+const RECKON_SHOW_ERRORS_LINE_RE = /^reckon-show-errors:\s*true\s*$/;
 
 interface FrontmatterRange {
   open: number;   // line index of opening ---
@@ -92,6 +93,26 @@ export function isReckonIsolated(text: string): boolean {
   if (!fm) return false;
   for (let i = fm.open + 1; i < fm.close; i++) {
     if (RECKON_ISOLATED_LINE_RE.test(lines[i])) return true;
+  }
+  return false;
+}
+
+/**
+ * Returns true iff the page's frontmatter has `reckon-show-errors: true`
+ * as a top-level key. Used by plug.ts to opt the page into visible-error
+ * rendering — failed mathjs parses become `kind: "error"` rows instead
+ * of the silent `kind: "comment"` fallback.
+ *
+ * Mirrors isReckonIsolated's parsing strategy: requires properly
+ * delimited frontmatter, no quoting, no indentation. Anything else
+ * returns false (defensive — when in doubt, treat as default-off).
+ */
+export function isReckonShowErrors(text: string): boolean {
+  const lines = text.split("\n");
+  const fm = findFrontmatter(lines);
+  if (!fm) return false;
+  for (let i = fm.open + 1; i < fm.close; i++) {
+    if (RECKON_SHOW_ERRORS_LINE_RE.test(lines[i])) return true;
   }
   return false;
 }
