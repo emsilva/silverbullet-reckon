@@ -4,6 +4,66 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 ---
 
+## What's new — Cross-block continuous mode + `total` reference (issue #13)
+
+Two changes that make multi-block pages feel like one calculation.
+
+### Continuous mode (default)
+
+Fenced `reckon` blocks now share scope with each other in source
+order. Variables and `ans` flow across block boundaries:
+
+```reckon
+bill = 80
+```
+
+```reckon
+bill * 1.2        # 96 — sees `bill` from the prior block
+ans + 4           # 100 — `ans` carries forward too
+```
+
+`lineN` and the gutter stay block-internal — each block has its own
+`line1..lineN` namespace, matching what the gutter shows. Cross-block
+communication is through named variables and `ans`.
+
+### Opt-out: `reckon-isolated: true`
+
+Add the flag to a page's frontmatter to revert to V1 per-block
+isolation:
+
+    ---
+    reckon: true
+    reckon-isolated: true
+    ---
+
+In isolated mode, each block has its own fresh scope — variables and
+`ans` do not flow across. Useful for pages where blocks are
+independent calculations rather than steps in one chain.
+
+### `total` as a reference
+
+Each block's auto-Σ row now has a name. Inside the block that
+produced it, `total` resolves to the same number shown in the Σ row:
+
+```reckon
+100
+200
+total / 2         # 150 — half of this block's Σ (300)
+```
+
+Rows that reference `total` are *derived* — they display their
+resolved value but don't contribute to Σ. This keeps Σ and `total`
+in sync (both show 300 in the example above, even though row 3's
+result is 150).
+
+`total` is block-scoped — it does not leak into the next block.
+The next block's `total` is computed from its own value rows.
+
+`total` source spans are colored gold (light) / yellow (dark) like
+`lineN`, distinct from regular identifiers.
+
+---
+
 ## What's new — Line-number gutter (issue #12)
 
 Reckon panels and `reckon` blocks now show a line-number gutter on
