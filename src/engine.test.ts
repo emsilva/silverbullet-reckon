@@ -468,3 +468,71 @@ describe("engine.evaluate — identifier and multi-word name sets", () => {
     expect(out.multiWordNames).toEqual(new Set());
   });
 });
+
+describe("engine.evaluate — line references (lineN)", () => {
+  it("`line1` resolves to the numeric value of source line 1", () => {
+    const out = evaluate("100\nline1 + 50\n");
+    expect(out.rows[0]).toMatchObject({ kind: "value", line: 1, result: "100" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", line: 2, result: "150" });
+  });
+
+  it("works with assignment rows: `salary = 200000` then `line1 * 1.15`", () => {
+    const out = evaluate("salary = 200000\nline1 * 1.15\n");
+    expect(out.rows[0]).toMatchObject({ kind: "assignment", varName: "salary" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "230,000" });
+  });
+
+  it("multiple lineN references in one expression", () => {
+    const out = evaluate("100\n200\nline1 + line2\n");
+    expect(out.rows[2]).toMatchObject({ kind: "value", result: "300" });
+  });
+
+  it("forward reference (lineN where N > current line) → comment", () => {
+    const out = evaluate("line2 + 5\n100\n");
+    expect(out.rows[0].kind).toBe("comment");
+    expect(out.rows[1]).toMatchObject({ kind: "value", result: "100" });
+  });
+
+  it("reference to non-numeric (unit) row → comment", () => {
+    const out = evaluate("100 km in miles\nline1 + 5\n");
+    expect(out.rows[0].kind).toBe("value");
+    expect(out.rows[1].kind).toBe("comment");
+  });
+
+  it("reference to comment row → comment", () => {
+    const out = evaluate("not math here\nline1 + 5\n");
+    expect(out.rows[0].kind).toBe("comment");
+    expect(out.rows[1].kind).toBe("comment");
+  });
+
+  it("reference to heading row → comment", () => {
+    const out = evaluate("# heading\nline1 + 5\n");
+    expect(out.rows[0].kind).toBe("heading");
+    expect(out.rows[1].kind).toBe("comment");
+  });
+
+  it("reference to blank row → comment", () => {
+    const out = evaluate("\nline1 + 5\n");
+    expect(out.rows[0].kind).toBe("blank");
+    expect(out.rows[1].kind).toBe("comment");
+  });
+
+  it("reference to non-existent line (line99) → comment", () => {
+    const out = evaluate("100\nline99 + 5\n");
+    expect(out.rows[1].kind).toBe("comment");
+  });
+
+  it("source line numbering accounts for frontmatter (lineN matches editor line)", () => {
+    const out = evaluate("---\nreckon: true\n---\n\n100\nline5 + 50\n");
+    // Frontmatter lines 1-3 + closing-delim consumes line 4 (blank). The first
+    // math line is source line 5; second math line is source line 6.
+    expect(out.rows[0]).toMatchObject({ kind: "value", line: 5, result: "100" });
+    expect(out.rows[1]).toMatchObject({ kind: "value", line: 6, result: "150" });
+  });
+
+  it("isolation: each evaluate() call has a fresh scope (line1 not visible across calls)", () => {
+    evaluate("99\n");
+    const out = evaluate("line1 + 1\n");
+    expect(out.rows[0].kind).toBe("comment");
+  });
+});

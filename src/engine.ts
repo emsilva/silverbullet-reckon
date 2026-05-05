@@ -189,6 +189,15 @@ function evaluateLine(
   const formatted = formatValue(value);
 
   const clipboard = computeClipboard(value, formatted);
+
+  // Register the numeric result for line references (lineN).
+  // Only finite numerics are referenceable; unit values, strings, and
+  // booleans don't get registered, so references to those rows throw and
+  // fall through to the comment classification.
+  if (formatted.numeric !== undefined && Number.isFinite(formatted.numeric)) {
+    parser.set(`line${raw.line}`, formatted.numeric);
+  }
+
   if (assignment) {
     return {
       kind: "assignment",
