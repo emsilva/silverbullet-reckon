@@ -443,6 +443,14 @@ describe("renderSheet — script wiring (gutter click + hover-pair)", () => {
     const out = renderSheet(canonical);
     expect(out.script).toContain("__reckonClickBound");
   });
+
+  it("script broadcasts hover events to sibling iframes for cross-block hover-pair", () => {
+    const out = renderSheet(canonical);
+    expect(out.script).toContain("postMessage");
+    expect(out.script).toContain("reckon:hoverEnter");
+    expect(out.script).toContain("reckon:hoverLeave");
+    expect(out.script).toMatch(/window\.top|top\.frames/);
+  });
 });
 
 describe("renderSheet — totalref source coloring", () => {

@@ -163,43 +163,80 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
     return attr.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
-  function findPairs(row) {
-    var dataLine = row.getAttribute("data-line");
-    if (!dataLine) return [];
-    var forwardRefs = parseRefs(row.getAttribute("data-references"));
-    var matches = [];
+  // Highlight rows in THIS iframe whose data-line ∈ refs (forward) or whose
+  // data-references contains targetLine (reverse). Used for both local hover
+  // and cross-iframe hover messages — same rule on both sides.
+  function applyPairs(targetLine, refs) {
     var allRows = document.querySelectorAll("tr[data-line]");
     for (var i = 0; i < allRows.length; i++) {
       var other = allRows[i];
-      if (other === row) continue;
       var otherLine = other.getAttribute("data-line");
-      if (forwardRefs.indexOf(otherLine) !== -1) {
-        matches.push(other);
+      if (refs && refs.indexOf(otherLine) !== -1) {
+        other.classList.add("linref-pair");
         continue;
       }
-      var otherRefs = parseRefs(other.getAttribute("data-references"));
-      if (otherRefs.indexOf(dataLine) !== -1) {
-        matches.push(other);
+      if (targetLine) {
+        var otherRefs = parseRefs(other.getAttribute("data-references"));
+        if (otherRefs.indexOf(targetLine) !== -1) {
+          other.classList.add("linref-pair");
+        }
       }
     }
-    return matches;
+  }
+
+  function clearPairs() {
+    var paired = document.querySelectorAll("tr.linref-pair");
+    for (var i = 0; i < paired.length; i++) paired[i].classList.remove("linref-pair");
+  }
+
+  // Broadcast hover events to sibling block-widget iframes so cross-block
+  // lineN references light up on both sides. SilverBullet renders each
+  // reckon block in its own same-origin iframe; window.top.frames lets us
+  // reach siblings to deliver the message. Same-origin guarantees us
+  // contentWindow access; the postMessage hop is for reaching across the
+  // iframe boundary cheaply (no shared state between iframe scripts).
+  function broadcastHover(msg) {
+    try {
+      var top = window.top;
+      if (!top || top === window) return;
+      var frames = top.frames;
+      for (var i = 0; i < frames.length; i++) {
+        try {
+          if (frames[i] !== window) frames[i].postMessage(msg, "*");
+        } catch (err) { /* cross-origin sibling — skip */ }
+      }
+    } catch (err) { /* defensive — don't let broadcast errors break local UI */ }
   }
 
   document.addEventListener("mouseenter", function (e) {
     if (!e.target.closest) return;
     var row = e.target.closest("tr[data-line]");
     if (!row) return;
-    var pairs = findPairs(row);
-    for (var i = 0; i < pairs.length; i++) pairs[i].classList.add("linref-pair");
+    var dataLine = row.getAttribute("data-line");
+    var refs = parseRefs(row.getAttribute("data-references"));
+    applyPairs(dataLine, refs);
+    // Skip the hovered row in our own iframe — :hover handles its style.
+    row.classList.remove("linref-pair");
+    broadcastHover({ type: "reckon:hoverEnter", dataLine: dataLine, refs: refs });
   }, true);
 
   document.addEventListener("mouseleave", function (e) {
     if (!e.target.closest) return;
     var row = e.target.closest("tr[data-line]");
     if (!row) return;
-    var paired = document.querySelectorAll("tr.linref-pair");
-    for (var i = 0; i < paired.length; i++) paired[i].classList.remove("linref-pair");
+    clearPairs();
+    broadcastHover({ type: "reckon:hoverLeave" });
   }, true);
+
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || typeof d !== "object") return;
+    if (d.type === "reckon:hoverEnter") {
+      applyPairs(d.dataLine, d.refs || []);
+    } else if (d.type === "reckon:hoverLeave") {
+      clearPairs();
+    }
+  });
 })();",
 }
 `;
