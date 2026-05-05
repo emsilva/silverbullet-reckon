@@ -1,5 +1,6 @@
 const FRONTMATTER_DELIM = "---";
 const RECKON_LINE_RE = /^reckon:\s*true\s*$/;
+const RECKON_ISOLATED_LINE_RE = /^reckon-isolated:\s*true\s*$/;
 
 interface FrontmatterRange {
   open: number;   // line index of opening ---
@@ -73,4 +74,24 @@ export function toggleReckonFrontmatter(text: string): string {
   // Frontmatter exists, no reckon: true — insert before the closing delim.
   lines.splice(fm.close, 0, "reckon: true");
   return lines.join("\n");
+}
+
+/**
+ * Returns true iff the page's frontmatter has `reckon-isolated: true`
+ * as a top-level key. Used by reckonBlockWidget to opt out of the new
+ * cross-block continuous mode and preserve V1 per-block isolation.
+ *
+ * Mirrors isReckonSheet's parsing strategy: requires properly delimited
+ * frontmatter, no quoting, no indentation. Anything else returns false
+ * (defensive — when in doubt, treat as continuous since that's the
+ * default).
+ */
+export function isReckonIsolated(text: string): boolean {
+  const lines = text.split("\n");
+  const fm = findFrontmatter(lines);
+  if (!fm) return false;
+  for (let i = fm.open + 1; i < fm.close; i++) {
+    if (RECKON_ISOLATED_LINE_RE.test(lines[i])) return true;
+  }
+  return false;
 }

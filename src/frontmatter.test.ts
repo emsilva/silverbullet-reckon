@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isReckonSheet, toggleReckonFrontmatter } from "./frontmatter";
+import { isReckonSheet, toggleReckonFrontmatter, isReckonIsolated } from "./frontmatter";
 
 describe("isReckonSheet", () => {
   it("returns false for a page with no frontmatter", () => {
@@ -73,5 +73,43 @@ describe("toggleReckonFrontmatter", () => {
     const inserted = toggleReckonFrontmatter(orig);
     const removed = toggleReckonFrontmatter(inserted);
     expect(removed).toBe(orig);
+  });
+});
+
+describe("isReckonIsolated", () => {
+  it("returns false for a page with no frontmatter", () => {
+    expect(isReckonIsolated("body\n")).toBe(false);
+  });
+
+  it("returns false for frontmatter without the flag", () => {
+    expect(isReckonIsolated("---\nreckon: true\n---\n")).toBe(false);
+  });
+
+  it("returns true for `reckon-isolated: true`", () => {
+    expect(isReckonIsolated("---\nreckon-isolated: true\n---\n")).toBe(true);
+  });
+
+  it("returns true alongside `reckon: true` and other keys", () => {
+    expect(isReckonIsolated("---\nreckon: true\nreckon-isolated: true\ntags: foo\n---\n")).toBe(true);
+  });
+
+  it("returns false for `reckon-isolated: false`", () => {
+    expect(isReckonIsolated("---\nreckon-isolated: false\n---\n")).toBe(false);
+  });
+
+  it("returns false for quoted `reckon-isolated: \"true\"`", () => {
+    expect(isReckonIsolated("---\nreckon-isolated: \"true\"\n---\n")).toBe(false);
+  });
+
+  it("returns false when the flag is indented (not top-level)", () => {
+    expect(isReckonIsolated("---\nfoo:\n  reckon-isolated: true\n---\n")).toBe(false);
+  });
+
+  it("returns false when frontmatter is unterminated", () => {
+    expect(isReckonIsolated("---\nreckon-isolated: true\n\nbody\n")).toBe(false);
+  });
+
+  it("returns false for empty input", () => {
+    expect(isReckonIsolated("")).toBe(false);
   });
 });
