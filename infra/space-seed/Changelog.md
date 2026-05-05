@@ -18,10 +18,11 @@ Refer to the numeric value of any earlier row by its source line number:
     line1 + line2     # 300
 
 `lineN` is the **source** line number — the same one your editor shows.
-For pages with frontmatter, that means the first math row may be
-`line5` or `line6`, not `line1`. References to a non-existent or
-non-numeric row (heading, comment, unit, blank, or a line that hasn't
-been evaluated yet) silently classify as comment.
+For pages with frontmatter (and any prose or headings before the first
+math row), that means the first math row is `line5` or later, not
+`line1`. References to a non-existent or non-numeric row (heading,
+comment, unit, blank, or a line that hasn't been evaluated yet)
+silently classify as comment.
 
 ### `ans` — previous numeric result
 

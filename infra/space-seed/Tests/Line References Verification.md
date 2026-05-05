@@ -13,7 +13,10 @@ block at the bottom verifies the block-widget surface in isolation.
 100
 200
 line13 + line14
-// expected (panel): 100, 200, 300 (lineN uses source line numbers — `line13` and `line14` here)
+// expected (panel): 100, 200, 300
+// `line13` is the `100` row, `line14` is the `200` row. If you insert or
+// remove lines above this section, update the expression to match the
+// new source-line numbers.
 
 ## ans — previous numeric result chain
 
