@@ -2,6 +2,7 @@ import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import {
   isReckonSheet,
   isReckonIsolated,
+  isReckonShowErrors,
   toggleReckonFrontmatter,
 } from "./frontmatter";
 import {
@@ -37,13 +38,14 @@ export async function reckonBlockWidget(
   _pageName: string,
 ): Promise<{ html: string; script: string }> {
   const text = await editor.getText();
+  const showErrors = isReckonShowErrors(text);
   if (isReckonIsolated(text)) {
-    return renderSheet(evaluate(bodyText));
+    return renderSheet(evaluate(bodyText, { showErrors }));
   }
-  const pageResult = evaluatePageContinuous(text);
+  const pageResult = evaluatePageContinuous(text, { showErrors });
   const block = findBlockByBody(pageResult.blocks, bodyText);
   if (!block) {
-    return renderSheet(evaluate(bodyText));
+    return renderSheet(evaluate(bodyText, { showErrors }));
   }
   return renderSheet({
     rows: block.rows,
@@ -102,7 +104,8 @@ async function runPanelRefresh(): Promise<void> {
     await editor.hidePanel(PANEL_LOCATION);
     return;
   }
-  const result = evaluate(text);
+  const showErrors = isReckonShowErrors(text);
+  const result = evaluate(text, { showErrors });
   const { html, script } = renderSheet(result);
   await editor.showPanel(PANEL_LOCATION, PANEL_MODE, html, script);
 }
