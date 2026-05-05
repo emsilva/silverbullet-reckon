@@ -41,7 +41,12 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ms.test(o));if(i>=0){if(r.sp
     font-size: 13px;
   }
   table.reckon { width: 100%; border-collapse: collapse; }
-  td { padding: 3px 10px; vertical-align: top; white-space: pre-wrap; }
+  td {
+    padding: 3px 10px;
+    vertical-align: top;
+    white-space: pre-wrap;
+    transition: background 150ms ease;
+  }
   td.source { color: inherit; }
   td.result { text-align: right; opacity: 0.85; }
   tr.blank td { height: 1.2em; }
@@ -61,18 +66,18 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ms.test(o));if(i>=0){if(r.sp
   tr.total td.label { text-align: left; }
 
   /* Token coloring \u2014 Monokai Pro Light (light mode default) */
-  .t-num  { color: #6849c2; }
-  .t-id   { color: #218a55; }
-  .t-unit { color: #1c8ca8; }
-  .t-op   { opacity: 0.45; }
-  .t-kw   { color: #e14775; font-style: italic; }
-  .t-pct  { color: #c25c00; }
+  .t-num    { color: #6849c2; }
+  .t-id     { color: #218a55; }
+  .t-unit   { color: #1c8ca8; }
+  .t-op     { opacity: 0.45; }
+  .t-kw     { color: #e14775; font-style: italic; }
+  .t-pct    { color: #c25c00; }
+  .t-linref { color: #a67c00; }
 
-  /* Click-to-copy affordance */
+  /* Click-to-copy affordance \u2014 transition inherited from base td rule */
   td.result[data-clipboard-value] {
     cursor: pointer;
     border-radius: 3px;
-    transition: background 150ms ease;
   }
   td.result[data-clipboard-value]:hover { background: rgba(104, 73, 194, 0.10); }
   td.result[data-clipboard-value]:active { transform: translateY(1px); }
@@ -91,14 +96,16 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ms.test(o));if(i>=0){if(r.sp
     color: color-mix(in srgb, currentColor 75%, transparent);
     cursor: pointer;
     border-radius: 3px;
-    transition: background 150ms ease;
   }
   td.gutter.referenceable:hover {
     background: rgba(104, 73, 194, 0.10);
   }
   td.gutter.referenceable:active { transform: translateY(1px); }
-  td.gutter.total { font-weight: 600; opacity: 0.85; }
-  tr.linref-pair td { background: rgba(104, 73, 194, 0.06); }
+  td.gutter.total {
+    color: color-mix(in srgb, currentColor 65%, transparent);
+    font-weight: 600;
+  }
+  tr.linref-pair td { background: rgba(104, 73, 194, 0.07); }
 
   /* Dark mode \u2014 Monokai Pro */
   @media (prefers-color-scheme: dark) {
@@ -107,12 +114,13 @@ ${e}`;let i=r.findIndex((o,n)=>n>t.open&&n<t.close&&ms.test(o));if(i>=0){if(r.sp
       background: var(--root-background-color, #2d2a2e);
     }
     tr.comment td.source { color: #727072; }
-    .t-num  { color: #ab9df2; }
-    .t-id   { color: #a9dc76; }
-    .t-unit { color: #78dce8; }
-    .t-op   { opacity: 0.55; }
-    .t-kw   { color: #ff6188; }
-    .t-pct  { color: #fc9867; }
+    .t-num    { color: #ab9df2; }
+    .t-id     { color: #a9dc76; }
+    .t-unit   { color: #78dce8; }
+    .t-op     { opacity: 0.55; }
+    .t-kw     { color: #ff6188; }
+    .t-pct    { color: #fc9867; }
+    .t-linref { color: #ffd866; }
     td.result[data-clipboard-value]:hover { background: rgba(171, 157, 242, 0.14); }
     td.gutter.referenceable:hover { background: rgba(171, 157, 242, 0.14); }
     tr.linref-pair td { background: rgba(171, 157, 242, 0.10); }
