@@ -98,6 +98,9 @@ const STYLE = `
 
 const SCRIPT = `
 (function () {
+  // Guard against accumulating duplicate listeners when SB re-injects the
+  // panel script on each render. The flag lives on window for the iframe's
+  // lifetime; a single set of delegates handles all subsequent renders.
   if (window.__reckonClickBound) return;
   window.__reckonClickBound = true;
 
