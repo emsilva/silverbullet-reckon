@@ -479,3 +479,70 @@ describe("renderSheet — totalref source coloring", () => {
     expect(html).toMatch(/@media \(prefers-color-scheme: dark\)[\s\S]*\.t-totalref \{ color: #ffd866; \}/);
   });
 });
+
+describe("renderSheet — error rows", () => {
+  const withError: EvaluateResult = {
+    rows: [
+      { kind: "value", line: 1, source: "100", result: "100", numeric: 100, clipboard: "100" },
+      { kind: "error", line: 2, source: "5 +" },
+      { kind: "value", line: 3, source: "200", result: "200", numeric: 200, clipboard: "200" },
+    ],
+    total: { value: "300", clipboard: "300" },
+    identifierNames: new Set(),
+    multiWordNames: new Set(),
+  };
+
+  it("renders an error row with class 'error' and data-line", () => {
+    const out = renderSheet(withError);
+    expect(out.html).toContain('<tr class="error" data-line="2">');
+  });
+
+  it("error row source cell uses colspan=2 (no result column)", () => {
+    const out = renderSheet(withError);
+    expect(out.html).toMatch(/<tr class="error" data-line="2"><td class="gutter">2<\/td><td class="source" colspan="2">5 \+<\/td><\/tr>/);
+  });
+
+  it("error row gutter is non-referenceable (no 'referenceable' class)", () => {
+    const out = renderSheet(withError);
+    // The error row's gutter td should be class="gutter", not class="gutter referenceable".
+    expect(out.html).toMatch(/<tr class="error" data-line="2"><td class="gutter">2<\/td>/);
+    expect(out.html).not.toMatch(/<tr class="error"[^>]*><td class="gutter referenceable"/);
+  });
+
+  it("error row has no data-references attribute", () => {
+    const out = renderSheet(withError);
+    const errorRowMatch = out.html.match(/<tr class="error"[^>]*>/);
+    expect(errorRowMatch).not.toBeNull();
+    expect(errorRowMatch![0]).not.toContain("data-references");
+  });
+
+  it("error row has no data-clipboard-value", () => {
+    const out = renderSheet(withError);
+    const errorRowSlice = out.html.match(/<tr class="error"[^>]*>.*?<\/tr>/);
+    expect(errorRowSlice).not.toBeNull();
+    expect(errorRowSlice![0]).not.toContain("data-clipboard-value");
+  });
+
+  it("escapes HTML in error source (XSS-safe)", () => {
+    const out = renderSheet({
+      rows: [{ kind: "error", line: 1, source: "<script>alert(1)</script>" }],
+      total: null,
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
+    });
+    expect(out.html).not.toContain("<script>alert(1)</script>");
+    expect(out.html).toContain("&lt;script&gt;");
+  });
+
+  it("includes tr.error CSS rule in STYLE block", () => {
+    const out = renderSheet(withError);
+    expect(out.html).toContain("tr.error td.source");
+    expect(out.html).toContain("tr.error td {");
+  });
+
+  it("computeTotal-fed Σ row still renders (errors don't suppress total)", () => {
+    const out = renderSheet(withError);
+    expect(out.html).toContain('class="total"');
+    expect(out.html).toContain("300");
+  });
+});

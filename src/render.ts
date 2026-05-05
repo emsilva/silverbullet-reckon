@@ -30,6 +30,8 @@ const STYLE = `
   td.result { text-align: right; opacity: 0.85; }
   tr.blank td { height: 1.2em; }
   tr.comment td.source { opacity: 0.6; color: #72696a; font-style: italic; }
+  tr.error td { background: rgba(225, 71, 117, 0.08); }
+  tr.error td.source { color: #e14775; font-style: italic; }
   tr.heading td.source {
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -94,6 +96,8 @@ const STYLE = `
       background: var(--root-background-color, #2d2a2e);
     }
     tr.comment td.source { color: #727072; }
+    tr.error td { background: rgba(255, 97, 136, 0.12); }
+    tr.error td.source { color: #ff6188; }
     .t-num    { color: #ab9df2; }
     .t-id     { color: #a9dc76; }
     .t-unit   { color: #78dce8; }
@@ -243,6 +247,8 @@ function rowHtml(row: ResultRow, options: TokenizeOptions): string {
       return `<tr class="blank" data-line="${row.line}"><td class="gutter">${row.line}</td><td colspan="2"></td></tr>`;
     case "comment":
       return `<tr class="comment" data-line="${row.line}"><td class="gutter">${row.line}</td><td class="source" colspan="2">${escapeHtml(row.source)}</td></tr>`;
+    case "error":
+      return `<tr class="error" data-line="${row.line}"><td class="gutter">${row.line}</td><td class="source" colspan="2">${escapeHtml(row.source)}</td></tr>`;
     case "heading":
       return `<tr class="heading" data-line="${row.line}"><td class="gutter">${row.line}</td><td class="source" colspan="2">${escapeHtml(row.text)}</td></tr>`;
     case "value":
