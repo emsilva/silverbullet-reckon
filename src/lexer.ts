@@ -1,4 +1,4 @@
-export type TokenKind = "num" | "id" | "unit" | "op" | "kw" | "pct" | "ws" | "text" | "linref";
+export type TokenKind = "num" | "id" | "unit" | "op" | "kw" | "pct" | "ws" | "text" | "linref" | "totalref";
 export interface Token {
   kind: TokenKind;
   text: string;
@@ -80,6 +80,7 @@ export function tokenize(source: string, options: TokenizeOptions): Token[] {
       let kind: TokenKind;
       if (KEYWORDS.has(w)) kind = "kw";
       else if (/^line\d+$/.test(w)) kind = "linref";
+      else if (w === "total") kind = "totalref";
       else if (identifiers.has(w)) kind = "id";
       else if (isUnit(w)) kind = "unit";
       else kind = "id";

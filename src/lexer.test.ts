@@ -231,3 +231,46 @@ describe("tokenize — linref kind for `lineN` references", () => {
     expect(tokens).toEqual([{ kind: "linref", text: "line5" }]);
   });
 });
+
+describe("tokenize — totalref kind for `total` reference", () => {
+  const opts = {
+    identifiers: new Set<string>(),
+    multiWord: new Set<string>(),
+    isUnit: () => false,
+  };
+
+  it("`total` tokenizes as kind: 'totalref'", () => {
+    expect(tokenize("total", opts)).toEqual([{ kind: "totalref", text: "total" }]);
+  });
+
+  it("`Total` (capitalized) stays as kind: 'id' (case-sensitive)", () => {
+    expect(tokenize("Total", opts)).toEqual([{ kind: "id", text: "Total" }]);
+  });
+
+  it("`totalfoo` stays as kind: 'id' (no false suffix match)", () => {
+    expect(tokenize("totalfoo", opts)).toEqual([{ kind: "id", text: "totalfoo" }]);
+  });
+
+  it("`tot` stays as kind: 'id' (no false prefix match)", () => {
+    expect(tokenize("tot", opts)).toEqual([{ kind: "id", text: "tot" }]);
+  });
+
+  it("combined: `total * 2` produces [totalref, ws, op, ws, num]", () => {
+    expect(tokenize("total * 2", opts)).toEqual([
+      { kind: "totalref", text: "total" },
+      { kind: "ws", text: " " },
+      { kind: "op", text: "*" },
+      { kind: "ws", text: " " },
+      { kind: "num", text: "2" },
+    ]);
+  });
+
+  it("totalref takes precedence over user identifiers (so a user `total` var is colored as ref)", () => {
+    const withTotalAsId = {
+      identifiers: new Set(["total"]),
+      multiWord: new Set<string>(),
+      isUnit: () => false,
+    };
+    expect(tokenize("total", withTotalAsId)).toEqual([{ kind: "totalref", text: "total" }]);
+  });
+});
