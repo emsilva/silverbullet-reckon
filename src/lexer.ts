@@ -1,4 +1,4 @@
-export type TokenKind = "num" | "id" | "unit" | "op" | "kw" | "pct" | "ws" | "text";
+export type TokenKind = "num" | "id" | "unit" | "op" | "kw" | "pct" | "ws" | "text" | "linref";
 export interface Token {
   kind: TokenKind;
   text: string;
@@ -73,12 +73,13 @@ export function tokenize(source: string, options: TokenizeOptions): Token[] {
       continue;
     }
 
-    // 5. Word — could be keyword, identifier, or unit
+    // 5. Word — could be keyword, linref, identifier, or unit
     const wordM = WORD_RE.exec(rest);
     if (wordM) {
       const w = wordM[0];
       let kind: TokenKind;
       if (KEYWORDS.has(w)) kind = "kw";
+      else if (/^line\d+$/.test(w)) kind = "linref";
       else if (identifiers.has(w)) kind = "id";
       else if (isUnit(w)) kind = "unit";
       else kind = "id";

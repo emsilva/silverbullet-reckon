@@ -177,3 +177,57 @@ describe("tokenize — fallback text", () => {
     expect(tokenize("@", empty)).toEqual([{ kind: "text", text: "@" }]);
   });
 });
+
+describe("tokenize — linref kind for `lineN` references", () => {
+  const noUnits = (_: string) => false;
+  const opts = {
+    identifiers: new Set<string>(),
+    multiWord: new Set<string>(),
+    isUnit: noUnits,
+  };
+
+  it("`line5` tokenizes as kind: 'linref'", () => {
+    const tokens = tokenize("line5", opts);
+    expect(tokens).toEqual([{ kind: "linref", text: "line5" }]);
+  });
+
+  it("`line17` tokenizes as kind: 'linref' (multi-digit)", () => {
+    const tokens = tokenize("line17", opts);
+    expect(tokens).toEqual([{ kind: "linref", text: "line17" }]);
+  });
+
+  it("`lineabc` stays as kind: 'id' (not all-digit suffix)", () => {
+    const tokens = tokenize("lineabc", opts);
+    expect(tokens).toEqual([{ kind: "id", text: "lineabc" }]);
+  });
+
+  it("`line` (bare word, no digits) stays as kind: 'id'", () => {
+    const tokens = tokenize("line", opts);
+    expect(tokens).toEqual([{ kind: "id", text: "line" }]);
+  });
+
+  it("`line5_x` stays as kind: 'id' (digits not at end)", () => {
+    const tokens = tokenize("line5_x", opts);
+    expect(tokens).toEqual([{ kind: "id", text: "line5_x" }]);
+  });
+
+  it("combined: `line5 + 10` produces [linref, ws, op, ws, num]", () => {
+    const tokens = tokenize("line5 + 10", opts);
+    expect(tokens).toEqual([
+      { kind: "linref", text: "line5" },
+      { kind: "ws", text: " " },
+      { kind: "op", text: "+" },
+      { kind: "ws", text: " " },
+      { kind: "num", text: "10" },
+    ]);
+  });
+
+  it("linref takes precedence over user identifiers (so `line5` user-var is colored as ref)", () => {
+    const tokens = tokenize("line5", {
+      identifiers: new Set(["line5"]),
+      multiWord: new Set<string>(),
+      isUnit: noUnits,
+    });
+    expect(tokens).toEqual([{ kind: "linref", text: "line5" }]);
+  });
+});
