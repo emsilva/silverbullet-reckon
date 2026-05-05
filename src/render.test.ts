@@ -126,7 +126,7 @@ describe("render — heading row markup", () => {
       identifierNames: new Set(),
       multiWordNames: new Set(),
     });
-    expect(out.html).toContain('<tr class="heading">');
+    expect(out.html).toContain('<tr class="heading"');
     expect(out.html).toContain('<td class="source" colspan="2">Q2 budget</td>');
   });
 
@@ -319,5 +319,102 @@ describe("render — Monokai Pro CSS palette", () => {
     });
     expect(out.html).toMatch(/td\.result\[data-clipboard-value\]:hover/);
     expect(out.html).toMatch(/cursor:\s*pointer/);
+  });
+});
+
+describe("renderSheet — line-number gutter", () => {
+  it("every row has a <td class='gutter'> as its first cell", () => {
+    const out = renderSheet(canonical);
+    // 6 result rows + 1 total row = 7 rows. Every <tr> should open with
+    // a gutter cell.
+    const gutterCells = (out.html.match(/<td class="gutter[^"]*"/g) || []).length;
+    expect(gutterCells).toBe(7);
+  });
+
+  it("referenceable rows (value, assignment) have class 'gutter referenceable'", () => {
+    const out = renderSheet(canonical);
+    // canonical has 1 assignment (line 4) + 2 value rows (lines 5, 6) = 3 referenceable.
+    const matches = out.html.match(/<td class="gutter referenceable"/g) || [];
+    expect(matches.length).toBe(3);
+  });
+
+  it("non-referenceable rows (comment, blank, heading) have class 'gutter' only (no referenceable)", () => {
+    const out = renderSheet(canonical);
+    // 1 comment + 1 blank + 1 heading = 3 non-referenceable.
+    // Match opening <td class="gutter"> EXACTLY (not "gutter referenceable" or "gutter total").
+    const matches = out.html.match(/<td class="gutter">/g) || [];
+    expect(matches.length).toBe(3);
+  });
+
+  it("total row's gutter shows 'Σ' (no line number)", () => {
+    const out = renderSheet(canonical);
+    expect(out.html).toContain('<td class="gutter total">Σ</td>');
+  });
+
+  it("gutter cell carries the row's source line number", () => {
+    const out = renderSheet(canonical);
+    // canonical line 4 is the assignment row (tax = 20%). Its gutter should show "4".
+    expect(out.html).toMatch(/<td class="gutter referenceable" data-line="4">4<\/td>/);
+  });
+
+  it("emits data-line and data-references on rows containing lineN", () => {
+    const out = renderSheet({
+      rows: [
+        { kind: "value", line: 1, source: "100", result: "100", numeric: 100, clipboard: "100" },
+        { kind: "value", line: 2, source: "200", result: "200", numeric: 200, clipboard: "200" },
+        {
+          kind: "value",
+          line: 3,
+          source: "line1 + line2",
+          result: "300",
+          numeric: 300,
+          clipboard: "300",
+        },
+      ],
+      total: { value: "600", clipboard: "600" },
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
+    });
+    // Row 3 references lines 1 and 2.
+    expect(out.html).toMatch(/data-line="3"\s+data-references="1,2"/);
+    // Rows 1 and 2 don't reference anything — data-references should be absent or empty.
+    // (Implementation: omit the attribute entirely when there are no references.)
+    expect(out.html).not.toMatch(/data-line="1"\s+data-references=/);
+    expect(out.html).not.toMatch(/data-line="2"\s+data-references=/);
+  });
+
+  it("comment/heading/blank rows still get a gutter (just non-referenceable)", () => {
+    const out = renderSheet({
+      rows: [
+        { kind: "comment", line: 1, source: "hello" },
+        { kind: "blank", line: 2 },
+        { kind: "heading", line: 3, depth: 1, text: "Section" },
+      ],
+      total: null,
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
+    });
+    // 3 rows × 1 gutter each = 3 gutter cells.
+    const gutterCells = (out.html.match(/<td class="gutter[^"]*"/g) || []).length;
+    expect(gutterCells).toBe(3);
+    // None of them are 'referenceable'.
+    expect(out.html).not.toContain('class="gutter referenceable"');
+    // Each shows its source line number.
+    expect(out.html).toMatch(/<td class="gutter">1<\/td>/);
+    expect(out.html).toMatch(/<td class="gutter">2<\/td>/);
+    expect(out.html).toMatch(/<td class="gutter">3<\/td>/);
+  });
+
+  it("comment/heading/blank source cells use colspan=2 (gutter is separate)", () => {
+    const out = renderSheet({
+      rows: [
+        { kind: "comment", line: 1, source: "hello" },
+      ],
+      total: null,
+      identifierNames: new Set(),
+      multiWordNames: new Set(),
+    });
+    // Gutter takes one column; source spans the remaining 2 (source + result columns).
+    expect(out.html).toMatch(/<td class="source" colspan="2">/);
   });
 });

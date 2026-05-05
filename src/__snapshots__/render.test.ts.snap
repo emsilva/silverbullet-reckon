@@ -2,18 +2,18 @@
 
 exports[`integration — evaluate(text) → renderSheet(result) > snapshots the full pipeline for a canonical mixed input 1`] = `
 "<table class="reckon">
-<tr class="comment"><td class="source" colspan="2">Project budget Q2</td></tr>
-<tr class="blank"><td colspan="2"></td></tr>
-<tr class="assignment"><td class="source"><span class="t-id">tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
-<tr class="assignment"><td class="source"><span class="t-id">salary</span> <span class="t-op">=</span> <span class="t-num">200000</span></td><td class="result" data-clipboard-value="200000">200,000</td></tr>
-<tr class="value"><td class="source"><span class="t-num">100</span> <span class="t-op">+</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="120">120</td></tr>
-<tr class="value"><td class="source"><span class="t-num">100</span> <span class="t-unit">km</span> <span class="t-kw">in</span> <span class="t-unit">miles</span></td><td class="result" data-clipboard-value="62.13711922373339">62.13711922373339 miles</td></tr>
-<tr class="assignment"><td class="source"><span class="t-id">current tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
-<tr class="value"><td class="source"><span class="t-num">300</span> <span class="t-op">+</span> <span class="t-id">current tax</span></td><td class="result" data-clipboard-value="360">360</td></tr>
-<tr class="heading"><td class="source" colspan="2">this is a heading</td></tr>
-<tr class="comment"><td class="source" colspan="2">// note to self</td></tr>
-<tr class="value"><td class="source"><span class="t-num">5</span> # <span class="t-id">inline</span> <span class="t-id">comment</span></td><td class="result" data-clipboard-value="5">5</td></tr>
-<tr class="total"><td class="label">Total</td><td class="result" data-clipboard-value="485">485</td></tr>
+<tr class="comment" data-line="1"><td class="gutter">1</td><td class="source" colspan="2">Project budget Q2</td></tr>
+<tr class="blank" data-line="2"><td class="gutter">2</td><td colspan="2"></td></tr>
+<tr class="assignment" data-line="3"><td class="gutter referenceable" data-line="3">3</td><td class="source"><span class="t-id">tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
+<tr class="assignment" data-line="4"><td class="gutter referenceable" data-line="4">4</td><td class="source"><span class="t-id">salary</span> <span class="t-op">=</span> <span class="t-num">200000</span></td><td class="result" data-clipboard-value="200000">200,000</td></tr>
+<tr class="value" data-line="5"><td class="gutter referenceable" data-line="5">5</td><td class="source"><span class="t-num">100</span> <span class="t-op">+</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="120">120</td></tr>
+<tr class="value" data-line="6"><td class="gutter referenceable" data-line="6">6</td><td class="source"><span class="t-num">100</span> <span class="t-unit">km</span> <span class="t-kw">in</span> <span class="t-unit">miles</span></td><td class="result" data-clipboard-value="62.13711922373339">62.13711922373339 miles</td></tr>
+<tr class="assignment" data-line="7"><td class="gutter referenceable" data-line="7">7</td><td class="source"><span class="t-id">current tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
+<tr class="value" data-line="8"><td class="gutter referenceable" data-line="8">8</td><td class="source"><span class="t-num">300</span> <span class="t-op">+</span> <span class="t-id">current tax</span></td><td class="result" data-clipboard-value="360">360</td></tr>
+<tr class="heading" data-line="9"><td class="gutter">9</td><td class="source" colspan="2">this is a heading</td></tr>
+<tr class="comment" data-line="10"><td class="gutter">10</td><td class="source" colspan="2">// note to self</td></tr>
+<tr class="value" data-line="11"><td class="gutter referenceable" data-line="11">11</td><td class="source"><span class="t-num">5</span> # <span class="t-id">inline</span> <span class="t-id">comment</span></td><td class="result" data-clipboard-value="5">5</td></tr>
+<tr class="total"><td class="gutter total">Σ</td><td class="label">Total</td><td class="result" data-clipboard-value="485">485</td></tr>
 </table>"
 `;
 
@@ -66,6 +66,29 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
   td.result[data-clipboard-value]:hover { background: rgba(104, 73, 194, 0.10); }
   td.result[data-clipboard-value]:active { transform: translateY(1px); }
 
+  /* Gutter */
+  td.gutter {
+    color: color-mix(in srgb, currentColor 35%, transparent);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    min-width: 2.5em;
+    padding-right: 8px;
+    user-select: none;
+    white-space: nowrap;
+  }
+  td.gutter.referenceable {
+    color: color-mix(in srgb, currentColor 75%, transparent);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 150ms ease;
+  }
+  td.gutter.referenceable:hover {
+    background: rgba(104, 73, 194, 0.10);
+  }
+  td.gutter.referenceable:active { transform: translateY(1px); }
+  td.gutter.total { font-weight: 600; opacity: 0.85; }
+  tr.linref-pair td { background: rgba(104, 73, 194, 0.06); }
+
   /* Dark mode — Monokai Pro */
   @media (prefers-color-scheme: dark) {
     body {
@@ -80,16 +103,18 @@ exports[`renderSheet > matches the canonical snapshot 1`] = `
     .t-kw   { color: #ff6188; }
     .t-pct  { color: #fc9867; }
     td.result[data-clipboard-value]:hover { background: rgba(171, 157, 242, 0.14); }
+    td.gutter.referenceable:hover { background: rgba(171, 157, 242, 0.14); }
+    tr.linref-pair td { background: rgba(171, 157, 242, 0.10); }
   }
 </style>
 <table class="reckon">
-<tr class="comment"><td class="source" colspan="2">Project budget for Q2</td></tr>
-<tr class="blank"><td colspan="2"></td></tr>
-<tr class="heading"><td class="source" colspan="2">Inputs</td></tr>
-<tr class="assignment"><td class="source"><span class="t-id">tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
-<tr class="value"><td class="source"><span class="t-num">100</span> <span class="t-unit">km</span> <span class="t-kw">in</span> <span class="t-unit">miles</span></td><td class="result" data-clipboard-value="62.137">62.137 mi</td></tr>
-<tr class="value"><td class="source"><span class="t-num">300</span> <span class="t-op">+</span> <span class="t-id">tax</span></td><td class="result" data-clipboard-value="360">360</td></tr>
-<tr class="total"><td class="label">Total</td><td class="result" data-clipboard-value="360">360</td></tr>
+<tr class="comment" data-line="1"><td class="gutter">1</td><td class="source" colspan="2">Project budget for Q2</td></tr>
+<tr class="blank" data-line="2"><td class="gutter">2</td><td colspan="2"></td></tr>
+<tr class="heading" data-line="3"><td class="gutter">3</td><td class="source" colspan="2">Inputs</td></tr>
+<tr class="assignment" data-line="4"><td class="gutter referenceable" data-line="4">4</td><td class="source"><span class="t-id">tax</span> <span class="t-op">=</span> <span class="t-num">20</span><span class="t-pct">%</span></td><td class="result" data-clipboard-value="0.2">20%</td></tr>
+<tr class="value" data-line="5"><td class="gutter referenceable" data-line="5">5</td><td class="source"><span class="t-num">100</span> <span class="t-unit">km</span> <span class="t-kw">in</span> <span class="t-unit">miles</span></td><td class="result" data-clipboard-value="62.137">62.137 mi</td></tr>
+<tr class="value" data-line="6"><td class="gutter referenceable" data-line="6">6</td><td class="source"><span class="t-num">300</span> <span class="t-op">+</span> <span class="t-id">tax</span></td><td class="result" data-clipboard-value="360">360</td></tr>
+<tr class="total"><td class="gutter total">Σ</td><td class="label">Total</td><td class="result" data-clipboard-value="360">360</td></tr>
 </table>",
   "script": "(function () {
   // Guard against accumulating duplicate listeners when SB re-injects the

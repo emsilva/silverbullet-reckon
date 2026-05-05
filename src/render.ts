@@ -54,6 +54,29 @@ const STYLE = `
   td.result[data-clipboard-value]:hover { background: rgba(104, 73, 194, 0.10); }
   td.result[data-clipboard-value]:active { transform: translateY(1px); }
 
+  /* Gutter */
+  td.gutter {
+    color: color-mix(in srgb, currentColor 35%, transparent);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    min-width: 2.5em;
+    padding-right: 8px;
+    user-select: none;
+    white-space: nowrap;
+  }
+  td.gutter.referenceable {
+    color: color-mix(in srgb, currentColor 75%, transparent);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 150ms ease;
+  }
+  td.gutter.referenceable:hover {
+    background: rgba(104, 73, 194, 0.10);
+  }
+  td.gutter.referenceable:active { transform: translateY(1px); }
+  td.gutter.total { font-weight: 600; opacity: 0.85; }
+  tr.linref-pair td { background: rgba(104, 73, 194, 0.06); }
+
   /* Dark mode — Monokai Pro */
   @media (prefers-color-scheme: dark) {
     body {
@@ -68,6 +91,8 @@ const STYLE = `
     .t-kw   { color: #ff6188; }
     .t-pct  { color: #fc9867; }
     td.result[data-clipboard-value]:hover { background: rgba(171, 157, 242, 0.14); }
+    td.gutter.referenceable:hover { background: rgba(171, 157, 242, 0.14); }
+    tr.linref-pair td { background: rgba(171, 157, 242, 0.10); }
   }
 </style>`.trim();
 
@@ -111,20 +136,34 @@ ${totalHtml}
 function rowHtml(row: ResultRow, options: TokenizeOptions): string {
   switch (row.kind) {
     case "blank":
-      return `<tr class="blank"><td colspan="2"></td></tr>`;
+      return `<tr class="blank" data-line="${row.line}"><td class="gutter">${row.line}</td><td colspan="2"></td></tr>`;
     case "comment":
-      return `<tr class="comment"><td class="source" colspan="2">${escapeHtml(row.source)}</td></tr>`;
+      return `<tr class="comment" data-line="${row.line}"><td class="gutter">${row.line}</td><td class="source" colspan="2">${escapeHtml(row.source)}</td></tr>`;
     case "heading":
-      return `<tr class="heading"><td class="source" colspan="2">${escapeHtml(row.text)}</td></tr>`;
+      return `<tr class="heading" data-line="${row.line}"><td class="gutter">${row.line}</td><td class="source" colspan="2">${escapeHtml(row.text)}</td></tr>`;
     case "value":
-      return `<tr class="value"><td class="source">${tokensToHtml(tokenize(row.source, options))}</td><td class="result" data-clipboard-value="${escapeHtml(row.clipboard)}">${escapeHtml(row.result)}</td></tr>`;
-    case "assignment":
-      return `<tr class="assignment"><td class="source">${tokensToHtml(tokenize(row.source, options))}</td><td class="result" data-clipboard-value="${escapeHtml(row.clipboard)}">${escapeHtml(row.result)}</td></tr>`;
+    case "assignment": {
+      const tokens = tokenize(row.source, options);
+      const refs = extractReferencedLines(tokens);
+      const refsAttr = refs.length > 0 ? ` data-references="${refs.join(",")}"` : "";
+      return `<tr class="${row.kind}" data-line="${row.line}"${refsAttr}><td class="gutter referenceable" data-line="${row.line}">${row.line}</td><td class="source">${tokensToHtml(tokens)}</td><td class="result" data-clipboard-value="${escapeHtml(row.clipboard)}">${escapeHtml(row.result)}</td></tr>`;
+    }
   }
 }
 
 function totalRowHtml(total: TotalRow): string {
-  return `<tr class="total"><td class="label">Total</td><td class="result" data-clipboard-value="${escapeHtml(total.clipboard)}">${escapeHtml(total.value)}</td></tr>`;
+  return `<tr class="total"><td class="gutter total">Σ</td><td class="label">Total</td><td class="result" data-clipboard-value="${escapeHtml(total.clipboard)}">${escapeHtml(total.value)}</td></tr>`;
+}
+
+function extractReferencedLines(tokens: Token[]): number[] {
+  const lines: number[] = [];
+  for (const t of tokens) {
+    if (t.kind === "linref") {
+      const m = /^line(\d+)$/.exec(t.text);
+      if (m) lines.push(Number(m[1]));
+    }
+  }
+  return lines;
 }
 
 function tokensToHtml(tokens: Token[]): string {
