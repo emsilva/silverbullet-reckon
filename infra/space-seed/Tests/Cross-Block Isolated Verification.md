@@ -23,7 +23,8 @@ bill = 80
 Block 2 cannot see `bill` from Block 1:
 
 ```reckon
-bill * 1.2          # expected: comment row (bill is undefined here)
+bill * 1.2
+// expected: comment row (bill is undefined here)
 ```
 
 ## 2. `ans` flow is BLOCKED
@@ -38,7 +39,8 @@ Block 1 produces a numeric:
 Block 2's `ans` is fresh — Block 1's last numeric is not visible:
 
 ```reckon
-ans + 50            # expected: comment row (no prior numeric in this block)
+ans + 50
+// expected: comment row (no prior numeric in this block)
 ```
 
 ## 3. `total` still works within a single block
@@ -49,8 +51,9 @@ same as in continuous mode:
 ```reckon
 100
 200
-total / 2           # expected display: 150
-                    # expected Σ: 300
+total / 2
+// expected: 150 (= 300 / 2)
+// expected Σ: 300 (the total/2 row is derived, excluded from Σ)
 ```
 
 ## 4. Each block has its own `lineN` namespace (unchanged)
@@ -58,5 +61,6 @@ total / 2           # expected display: 150
 ```reckon
 1000
 2000
-line1 + line2       # expected: 3000
+line1 + line2
+// expected: 3000 (this block's row 1 + row 2)
 ```
