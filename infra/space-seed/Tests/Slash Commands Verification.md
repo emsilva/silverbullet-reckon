@@ -7,7 +7,7 @@ each inserts the correct scaffold at the cursor.
 ## Setup
 
 1. From the repo root: `npm run build && npm run dev:link`.
-2. In SilverBullet, run `Plugs: Reload` (Cmd-K → "Plugs: Reload").
+2. In SilverBullet, run `Plugs: Reload` (Cmd-K / Ctrl-K → "Plugs: Reload").
 3. Reload the current page once so SB re-indexes the space and
    picks up the new slash-template pages tagged
    `meta/template/slash`.
@@ -42,9 +42,10 @@ reckon: true
 
 Expected behavior:
 
-- The right-hand panel becomes visible (frontmatter has `reckon: true`,
-  so `isReckonSheet` returns true). Σ is empty because there are no
-  math rows yet, but the panel is present.
+- Confirm the right-hand panel is now visible, even though there are
+  no math lines yet. Frontmatter `reckon: true` is what activates the
+  panel; an empty Σ is expected here. (`isReckonSheet` returns true,
+  the panel mounts.)
 - Type a page title at the cursor (e.g. `Q3 budget`); it appears
   inline as the H1 heading.
 - Add a math line below the heading (e.g. `100 + 200`); the panel
@@ -65,8 +66,9 @@ Expected inserted content (cursor lands at `<cursor>`):
 
 Expected behavior:
 
-- Type `100 + 200` at the cursor and click out of the block; the
-  reckon code widget renders below the closing fence with the
+- Type `100 + 200` at the cursor, then move the cursor outside the
+  block (e.g. arrow down past the closing fence, or press Escape);
+  the reckon code widget renders below the closing fence with the
   value `300`.
 - The page does NOT need `reckon: true` in frontmatter —
   `/reckon-block` works on any page.
@@ -80,7 +82,7 @@ run. This is a regression check — no code changed for it, but
 verifying nothing was accidentally shadowed by the new slash-command
 entries.
 
-## At-cursor contract — known limitation
+## At-cursor contract — known limitations
 
 Both slash commands insert at the user's cursor (this is the SB
 slash-template default). Implications:
