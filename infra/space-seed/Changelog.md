@@ -4,6 +4,28 @@ User-facing notes on what changed in each Reckon iteration. Latest at the top.
 
 ---
 
+## What's new — Slash commands (issue #5)
+
+**Date:** 2026-05-06
+
+Two new slash commands surface reckon in SilverBullet's `/`-palette
+autocomplete:
+
+- `/reckon-sheet` — inserts `reckon: true` frontmatter and a heading,
+  ready to start a sheet on a fresh page.
+- `/reckon-block` — inserts an empty fenced reckon block, ready for
+  inline math anywhere in a page.
+
+Both insert at the cursor — natural for fresh pages where the cursor
+starts at the top. For converting an existing page to a reckon sheet
+(cursor mid-content), the existing `Reckon: Convert page to sheet`
+palette command still works.
+
+See `Tests/Slash Commands Verification.md` for the live verification
+flow.
+
+---
+
 ## What's new — Visible errors (issue #2)
 
 **Date:** 2026-05-05
