@@ -6,11 +6,27 @@ each inserts the correct scaffold at the cursor.
 
 ## Setup
 
-1. From the repo root: `npm run build && npm run dev:link`.
-2. In SilverBullet, run `Plugs: Reload` (Cmd-K / Ctrl-K → "Plugs: Reload").
-3. Reload the current page once so SB re-indexes the space and
-   picks up the new slash-template pages tagged
+The slash templates and this verification page live in
+`infra/space-seed/`. The runtime SilverBullet space at
+`infra/space/` does NOT auto-mirror from the seed (tracked in
+[#16](https://github.com/emsilva/silverbullet-reckon/issues/16)).
+For now, manually sync the new content:
+
+1. From the repo root, copy the new pieces into the runtime:
+
+   ```bash
+   cp -r "infra/space-seed/Library/Reckon" "infra/space/Library/"
+   cp "infra/space-seed/Tests/Slash Commands Verification.md" "infra/space/Tests/"
+   cp infra/space-seed/Changelog.md infra/space/Changelog.md
+   ```
+
+2. In SilverBullet, reload the current page so SB re-indexes the
+   space and picks up the new slash-template pages tagged
    `meta/template/slash`.
+
+(`Plugs: Reload` is **not** required for #5 — the plug binary is
+unchanged. Re-run `npm run dev:link` only when the plug code under
+`src/` actually changes.)
 
 ## Test 1: discovery
 
@@ -100,7 +116,10 @@ slash-template default). Implications:
 
 ## Distribution note
 
-This page and the slash templates ship in `infra/space-seed/`.
-`npm run dev:link` mirrors them to `infra/space/` (the runtime
-space). End users who install the plug from a URL do **not** get
-the slash templates — that's tracked in [issue #15](https://github.com/emsilva/silverbullet-reckon/issues/15).
+This page and the slash templates ship in `infra/space-seed/` (the
+seed for the dev runtime). The runtime at `infra/space/` does not
+auto-sync from the seed — see Setup step 1 for the manual `cp`
+flow, and [#16](https://github.com/emsilva/silverbullet-reckon/issues/16) for the
+project-level fix. End users who install the plug from a URL do
+**not** get the slash templates — that's tracked separately in
+[#15](https://github.com/emsilva/silverbullet-reckon/issues/15).
