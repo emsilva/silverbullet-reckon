@@ -1,0 +1,6 @@
+version: '3'
+
+includes:
+  devcontainer:
+    taskfile: .devcontainer/Taskfile.yml
+    optional: true
